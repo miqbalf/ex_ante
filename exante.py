@@ -406,6 +406,8 @@ class ExAnteCalc(AllometryLibrary):
         config_folder_name="",
         project_name="",
         download_csv=False,
+        link_allometry: str = os.getenv("link_allometry_csv_gsheet"),
+        link_growth: str = os.getenv("link_growth_model_data_csv"),
         growth_csv=growth_csv_abs_path,
         allometry_csv=allometry_csv_abs_path,
         name_column_species_allo="Lat. Name",
@@ -419,6 +421,8 @@ class ExAnteCalc(AllometryLibrary):
         self.growth_csv = growth_csv
         self.allometry_csv = allometry_csv
         self.download_csv = download_csv
+        self.link_growth = link_growth
+        self.link_allometry = link_allometry
         self.name_column_species_allo = name_column_species_allo
         self.name_column_species_growth = name_column_species_growth
 
@@ -581,6 +585,8 @@ class ExAnteCalc(AllometryLibrary):
             name_column_species_growth=self.name_column_species_growth,
             download_csv=self.download_csv,
             conversion_tco2=self.conversion_tco2,
+            link_growth=self.link_growth,
+            link_allometry=self.link_allometry
         )
 
         self.growth_melt = self.growth_df
