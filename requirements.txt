@@ -1,5 +1,8 @@
-# removed or updated old/conflicting packages
-# appnope==0.1.4  # Mac-only, unnecessary in Colab but harmless
+# Removed: torch, all nvidia-* (Colab provides them)
+# Avoids version conflicts with Colab preinstalls
+
+# Essentials
+appnope==0.1.4
 argon2-cffi==23.1.0
 argon2-cffi-bindings==21.2.0
 arrow==1.3.0
@@ -17,7 +20,14 @@ executing==2.1.0
 fastjsonschema==2.21.1
 fonttools==4.55.2
 fqdn==1.5.1
-geopandas==0.14.3  # <-- updated to latest compatible with Colab
+
+# Compatible with Colab: geopandas stack
+geopandas==0.14.3
+fiona==1.10.1
+pyproj==3.7.0
+shapely==2.0.6
+pyogrio==0.10.0
+
 h11==0.14.0
 httpcore==1.0.7
 httpx==0.28.1
@@ -31,8 +41,11 @@ jsonpointer==3.0.0
 jsonschema==4.23.0
 jsonschema-specifications==2024.10.1
 MarkupSafe==3.0.2
-matplotlib==3.7.1  # more compatible with Colab
+
+# Compatible matplotlib for plotnine
+matplotlib==3.8.4
 matplotlib-inline==0.1.7
+
 mistune==3.0.2
 nbclient==0.10.1
 nbconvert==7.16.4
@@ -52,9 +65,7 @@ ptyprocess==0.7.0
 pure_eval==0.2.3
 pycparser==2.22
 Pygments==2.18.0
-pyogrio==0.10.0
 pyparsing==3.2.0
-pyproj==3.7.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 python-json-logger==2.0.7
@@ -68,7 +79,6 @@ rpds-py==0.22.3
 scipy==1.14.1
 Send2Trash==1.8.3
 setuptools==75.6.0
-shapely==2.0.6
 six==1.17.0
 sniffio==1.3.1
 soupsieve==2.6
