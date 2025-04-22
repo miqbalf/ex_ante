@@ -1,3 +1,11 @@
-00_ex_ante_result
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
 
-**.pyc
+# Ignore all .pyc files
+*.pyc
+
+# Ignore all __pycache__ directories and contents
+__pycache__/
+**/__pycache__/
+
+00_ex_ante_result/
