@@ -403,6 +403,11 @@ class CSUEntryForm:
                 self.widgets_dict[col_name] = widgets.FloatText(
                     value=50.0, description=col_name
                 )  # Default area_ha = 50
+
+            elif col_name == "is_replanting":
+                self.widgets_dict[col_name] = widgets.widget_bool(
+                    value=False, description=col_name
+                )  # Default False
             elif col_name == "year_start":
                 self.widgets_dict[col_name] = widgets.IntText(
                     value=1, description=col_name

@@ -704,6 +704,7 @@ class ExAnteCalc(AllometryLibrary):
                 "Plot_Name",
                 "zone",
                 "area_ha",
+                "is_replanting",
                 "year_start",
                 "mu",
             ] + [f"{species}_num_trees" for species in self.unique_species_selected]
