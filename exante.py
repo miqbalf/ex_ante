@@ -739,9 +739,9 @@ class ExAnteCalc(AllometryLibrary):
                 else:
                     self.submit_csu_form_button.on_click(self.on_submit_form_csu)
 
-                # print("Step 12: Displaying Submit CSU Seedling button...")
+                print("----------------------------------------------")
                 display(self.submit_csu_form_button)
-                print("Click submit above if you done setup the csu")
+                print("Click submit above if you done setup the csu \n------------------------------------")
 
             except Exception as e:
                 print(f"ERROR in on_submit_click: {e}")
