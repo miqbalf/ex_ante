@@ -24,6 +24,7 @@ class SelectingScenario(widgets.VBox):
     def __init__(
         self, allometric_column_filter: pd.DataFrame, name_column_species_allo: str = ""
     ):
+        super().__init__()
         self.allometric_column_filter = allometric_column_filter
         self.name_column_species_allo = name_column_species_allo
 
@@ -46,8 +47,7 @@ class SelectingScenario(widgets.VBox):
 
         self._add_allo_type({'new': self.country_allometry.value})
 
-        children = [self.country_allometry, self.list_widget_holder]
-        super().__init__(children=children)
+        self.children = [self.country_allometry, self.list_widget_holder]
 
     def filter_or_selection(self, df_string_var, column_name, *args):
         filter_df_string = f"{df_string_var}["
