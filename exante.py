@@ -726,10 +726,10 @@ class ExAnteCalc(AllometryLibrary):
                 self.csu_form = CSUEntryForm(plot_csu)
                 print("Step 9: Displaying CSUEntryForm...")
                 self.csu_form.display_form()
-                print("Step 10: CSUEntryForm displayed.")
+                # print("Step 10: CSUEntryForm displayed.")
 
                 # Add a submit button for the CSU form
-                print("Step 11: Creating Submit CSU Seedling button...")
+                # print("Step 11: Creating Submit CSU Seedling button...")
                 self.submit_csu_form_button = widgets.Button(description="Submit CSU Seedling")
                 # Ensure the target method exists!
                 if not hasattr(self, 'on_submit_form_csu'):
@@ -739,7 +739,7 @@ class ExAnteCalc(AllometryLibrary):
                 else:
                     self.submit_csu_form_button.on_click(self.on_submit_form_csu)
 
-                print("Step 12: Displaying Submit CSU Seedling button...")
+                # print("Step 12: Displaying Submit CSU Seedling button...")
                 display(self.submit_csu_form_button)
                 print("Step 13: on_submit_click finished.")
 
@@ -788,6 +788,14 @@ class ExAnteCalc(AllometryLibrary):
                 print("\n------------------------------------------------")
                 print("Protected zone widgets:")
                 display(self.widget_protected_zone)
+
+            if "is_replanting" in self.df_selected:
+                self.widget_replanting = self.create_species_widgets(
+                    self.df_selected["is_replanting"], grouping_max_year
+                )
+                print("\n------------------------------------------------")
+                print("replanting widgets:")
+                display(self.widget_replanting)
 
             # Add a final submit button
             self.final_submit_button = widgets.Button(
