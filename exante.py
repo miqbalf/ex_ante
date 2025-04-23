@@ -818,7 +818,7 @@ class ExAnteCalc(AllometryLibrary):
             def check_zone(zone, df):
                 # Generate widgets for production and protected zones
                 widget_zone = self.create_species_widgets(
-                    self.df[zone], grouping_max_year
+                    df[zone], grouping_max_year
                 )
                 print(f"{zone} widgets:")
                 display(widget_zone)
