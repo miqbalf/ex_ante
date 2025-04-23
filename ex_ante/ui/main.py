@@ -500,9 +500,12 @@ class CSUEntryForm:
     def display_form(self):
         # print("DEBUG: Displaying self.form only...")
         # display(self.form) # Comment this out
+        # print("DEBUG: Displaying self.output only...")
+        # display(self.output) # Comment this out
 
-        print("DEBUG: Displaying self.output only...")
+        print("DEBUG: Displaying a simple test button...")
         try:
-            display(self.output) # Try displaying only this
+            test_button = widgets.Button(description="Simple Test Display")
+            display(test_button) # Display a brand new, simple widget
         except Exception as e:
-            print(f"ERROR displaying self.output: {e}")
+            print(f"ERROR displaying simple test button: {e}")
