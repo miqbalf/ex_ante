@@ -385,6 +385,7 @@ class CSUEntryForm:
             self.add_row_button,
             self.reset_button,
         ]
+        print(f"DEBUG [CSUEntryForm]: Total widgets in self.form VBox: {len(form_items)}") # Add this print
         self.form = widgets.VBox(form_items)
 
     def _initialize_widgets(self):
@@ -483,6 +484,8 @@ class CSUEntryForm:
                 widget.value = "production_zone"
             elif col_name == "area_ha":
                 widget.value = 50.0
+            elif col_name == "is_replanting":
+                widget.value = False
             elif col_name == "year_start":
                 widget.value = 1
             elif col_name == "mu":
@@ -494,8 +497,8 @@ class CSUEntryForm:
         with self.output:
             self.output.clear_output()
 
+    # Modify CSUEntryForm.display_form
     def display_form(self):
-        """
-        Display the form and the output area.
-        """
-        display(self.form, self.output)
+        print("DEBUG: Displaying self.form only...")
+        display(self.form) # Try this first
+        # display(self.output) # Comment this out
