@@ -675,59 +675,67 @@ class ExAnteCalc(AllometryLibrary):
         display(self.output)
 
     def on_submit_click(self, button):
-        """Step 2: Capture selections and proceed to the next stage"""
         with self.output:
-            print("Submit button clicked. Processing selections...")
+            print("Step 1: Submit button clicked.")
+            try: # Add try block for better error catching
+                # Capture selected data
+                self.df_selected = self.wm.selected_data
+                if not self.df_selected or not any(not df.empty for df in self.df_selected.values()):
+                    print("ERROR: No valid data selected from previous step.")
+                    return # Stop if no data
+                print("Step 2: Data captured from wm.")
+                self.df_tree_selected = pd.concat(list(self.df_selected.values())).reset_index(drop=True) # Ensure it's a list for concat
+                print("Step 3: Data concatenated.")
+                display(self.df_tree_selected)
 
-            # Capture selected data
-            self.df_selected = (
-                self.wm.selected_data
-            )  # Assuming wm provides selected data
-            self.df_tree_selected = pd.concat(self.df_selected.values()).reset_index(
-                drop=True
-            )
+                # Save the selections
+                self.df_tree_selected.to_csv(self.gdrive_location_df_tree_selected, index=False)
+                print("Step 4: Data saved to CSV.")
 
-            print("Selections captured:")
-            display(self.df_tree_selected)
+                # Acquire growth data
+                self.df_unique_species = self.df_tree_selected.drop(columns=["zone"]).drop_duplicates()
+                # Check if unique_species_selected is populated correctly before acquire_growth_data if it depends on it
+                print(f"Step 5: Unique species identified: {getattr(self, 'unique_species_selected', 'Attribute missing')}")
+                self.acquire_growth_data() # Ensure this defines self.unique_species_selected if needed below
+                print("Step 6: Growth data acquired.")
 
-            # Save the selections
-            self.df_tree_selected.to_csv(
-                self.gdrive_location_df_tree_selected, index=False
-            )
+                # Check unique_species_selected again before creating columns
+                if not hasattr(self, 'unique_species_selected') or not self.unique_species_selected:
+                    print("ERROR: self.unique_species_selected not populated after acquire_growth_data.")
+                    return
 
-            # Remove duplicate species entries and acquire growth data
-            self.df_unique_species = self.df_tree_selected.drop(
-                columns=["zone"]
-            ).drop_duplicates()
-            self.acquire_growth_data()
+                # Create template DataFrame
+                list_column_name = [...] # As before
+                plot_csu = pd.DataFrame(columns=list_column_name)
+                print("Step 7: Template DataFrame created.")
+                display(plot_csu)
 
-            # Create a template DataFrame
-            list_column_name = [
-                "Plot_ID",
-                "Plot_Name",
-                "zone",
-                "area_ha",
-                "is_replanting",
-                "year_start",
-                "mu",
-            ] + [f"{species}_num_trees" for species in self.unique_species_selected]
-            plot_csu = pd.DataFrame(columns=list_column_name)
+                # Display the data entry form
+                print("Step 8: Initializing CSUEntryForm...")
+                self.csu_form = CSUEntryForm(plot_csu)
+                print("Step 9: Displaying CSUEntryForm...")
+                self.csu_form.display_form()
+                print("Step 10: CSUEntryForm displayed.")
 
-            print(
-                "Template DataFrame created. Please edit rows manually or in the generated CSV."
-            )
-            display(plot_csu)
+                # Add a submit button for the CSU form
+                print("Step 11: Creating Submit CSU Seedling button...")
+                self.submit_csu_form_button = widgets.Button(description="Submit CSU Seedling")
+                # Ensure the target method exists!
+                if not hasattr(self, 'on_submit_form_csu'):
+                    print("ERROR: Target method 'on_submit_form_csu' does not exist!")
+                    # Optionally disable the button or don't display it
+                    self.submit_csu_form_button.disabled = True
+                else:
+                    self.submit_csu_form_button.on_click(self.on_submit_form_csu)
 
-            # Display the data entry form
-            self.csu_form = CSUEntryForm(plot_csu)
-            self.csu_form.display_form()
+                print("Step 12: Displaying Submit CSU Seedling button...")
+                display(self.submit_csu_form_button)
+                print("Step 13: on_submit_click finished.")
 
-            # Add a submit button for the CSU form
-            self.submit_csu_form_button = widgets.Button(
-                description="Submit CSU Seedling"
-            )
-            self.submit_csu_form_button.on_click(self.on_submit_form_csu)
-            display(self.submit_csu_form_button)
+            except Exception as e:
+                print(f"ERROR in on_submit_click: {e}")
+                import traceback
+                traceback.print_exc() # Print full traceback
 
     def on_submit_form_csu(self, button):
         """Handles submission of CSU seedling data"""
