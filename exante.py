@@ -684,10 +684,10 @@ class ExAnteCalc(AllometryLibrary):
                 widgets.HTML("<hr>"),
                 widgets.HTML("<b style='color:red'>COMPLETE THESE STEPS:</b>"),
                 widgets.HTML("1. Fill out the countries and allometry type, and then species list <br>2. Click this button when done"),
-                self.submit_button
+                submit_button
             ]))
         else:
-            display(self.submit_button)
+            display(submit_button)
         display(self.output)
 
     def on_submit_click(self, button):
