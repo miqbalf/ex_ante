@@ -726,27 +726,27 @@ class ExAnteCalc(AllometryLibrary):
                 print("Step 8: Initializing CSUEntryForm...")
                 self.csu_form = CSUEntryForm(plot_csu)
                 print("Step 9: Displaying CSUEntryForm...")
-                # self.csu_form.display_form()
+                self.csu_form.display_form()
                 # print("Step 10: CSUEntryForm displayed.")
 
-                # COLAB-SPECIFIC FIX START =================================
-                if is_running_in_colab():
-                    from google.colab import output
-                    output.clear()  # Clear previous widget states
+                # # COLAB-SPECIFIC FIX START =================================
+                # if is_running_in_colab():
+                #     from google.colab import output
+                #     output.clear()  # Clear previous widget states
                     
-                    # Display form elements sequentially
-                    display(self.csu_form.form)
-                    display(self.csu_form.output)
+                #     # Display form elements sequentially
+                #     display(self.csu_form.form)
+                #     display(self.csu_form.output)
                     
-                    # Force widget registration
-                    output.register_widget(self.csu_form.add_row_button)
-                    output.register_widget(self.csu_form.reset_button)
-                else:
-                    self.csu_form.display_form()
-                # COLAB-SPECIFIC FIX END ===================================
+                #     # Force widget registration
+                #     output.register_widget(self.csu_form.add_row_button)
+                #     output.register_widget(self.csu_form.reset_button)
+                # else:
+                #     self.csu_form.display_form()
+                # # COLAB-SPECIFIC FIX END ===================================
 
                 # Add a submit button for the CSU form
-                print("Step 11: Creating Submit CSU Seedling button ---> please submit after all data is added...")
+                print("Creating Submit CSU Seedling button ---> please submit after all data is added...")
                 # Add a submit button for the CSU form
                 self.submit_csu_form_button = widgets.Button(
                     description="Submit CSU Seedling"
