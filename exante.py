@@ -747,23 +747,38 @@ class ExAnteCalc(AllometryLibrary):
 
                 # Add a submit button for the CSU form
                 print("Creating Submit CSU Seedling button ---> please submit after all data is added...")
-                # Add a submit button for the CSU form
+                # COLAB COMPATIBLE DISPLAY ==============================
+                if is_running_in_colab():
+                    # Clear previous outputs
+                    from google.colab import output
+                    output.clear()
+                    
+                    # Display form components in a fixed order
+                    display(widgets.HTML("<h4>Data Entry Form</h4>"))
+                    display(self.csu_form.form)
+                    display(self.csu_form.output)
+                else:
+                    self.csu_form.display_form()
+                # ======================================================
+
+                # Step 11: Submit button
+                print("Step 11: Creating Submit CSU Seedling button...")
                 self.submit_csu_form_button = widgets.Button(
-                    description="Submit CSU Seedling"
+                    description="Submit CSU Seedling",
+                    layout=widgets.Layout(width='200px')  # Makes button more visible
                 )
                 self.submit_csu_form_button.on_click(self.on_submit_form_csu)
-            
+
+                # COLAB COMPATIBLE BUTTON DISPLAY ======================
                 if is_running_in_colab():
-                    from google.colab import output
-                    output.register_widget(self.submit_csu_form_button)
-                    display(HTML("<hr>"))  # Visual separator
+                    display(widgets.HTML("<hr>"))
+                    display(widgets.HTML(
+                        "<p style='color:red'>After completing data entry:</p>"
+                    ))
                     display(self.submit_csu_form_button)
-                    display(HTML("<p>Click submit after completing data entry</p>"))
                 else:
                     display(self.submit_csu_form_button)
-                    
-                print("----------------------------------------------")
-                display(self.submit_csu_form_button)
+                # ======================================================
                 # print("Click submit above if you done setup the csu \n------------------------------------")
 
             
