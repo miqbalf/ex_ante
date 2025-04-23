@@ -473,15 +473,28 @@ class SelectingScenario(widgets.VBox):
     # Make sure the on_checkbox_change handler correctly adds/removes children
     # from self.widget_species_select (the VBox container)
     def setup_species_widgets(self, name_column_species_allo):
-        # (Keep the version with detailed debug prints from the previous answer)
-        # ... (ensure it handles empty filters gracefully and returns {} on failure) ...
+        # ... (initial checks, filtering, creating output_widgets, species_select_widgets) ...
 
-        # --- Make sure the checkbox handler logic is correct ---
+        # *** 1. Define checkboxes dictionary ***
+        checkboxes = {
+            zone: widgets.Checkbox(
+                value=False,
+                # Use a consistent description format if needed
+                description=f'Enable {zone.replace("_", " ").capitalize()}',
+                disabled=False,
+                indent=False,
+            )
+            for zone in output_widgets.keys()
+        }
+
+        # *** 2. Define the handler function using the logic you pasted ***
         def on_checkbox_change(change):
+            # --- Start of logic you pasted ---
             checkbox_widget = change['owner']
             zone = ""
              # Find zone key associated with this checkbox instance
-            for z, cb in checkboxes.items(): # Use checkboxes dict created in this scope
+            # *** Use the 'checkboxes' dictionary defined *outside* this function ***
+            for z, cb in checkboxes.items():
                  if cb == checkbox_widget:
                       zone = z
                       break
@@ -489,6 +502,7 @@ class SelectingScenario(widgets.VBox):
                  print("WARN: Could not determine zone from checkbox.")
                  return
 
+            # *** Use self.species_selection_widgets defined in the outer scope ***
             target_zone_widgets = self.species_selection_widgets.get(zone)
             if not target_zone_widgets:
                  print(f"WARN: Could not find widgets for zone '{zone}' in self.species_selection_widgets")
@@ -498,6 +512,7 @@ class SelectingScenario(widgets.VBox):
             print(f"Checkbox '{checkbox_widget.description}' changed to {is_checked} for zone '{zone}'") #DEBUG
 
             # Ensure self.widget_species_select (the VBox container) exists
+            # *** Use self.widget_species_select defined in the outer scope ***
             if not self.widget_species_select:
                  print("ERROR: self.widget_species_select is None in on_checkbox_change!")
                  return
@@ -511,8 +526,9 @@ class SelectingScenario(widgets.VBox):
                     self.widget_species_select.children = tuple(current_children + [target_zone_widgets])
                 else:
                      print(f"Widgets for zone '{zone}' already present.") #DEBUG
-                # Trigger update of the output area within the zone widget
-                # filter_function(zone, species_selection_wid=species_select_widgets[zone].value) # Pass the *value*
+                # Trigger update of the output area within the zone widget?
+                # You might need to call filter_function here if you want the table displayed immediately
+                # filter_function(zone, species_select_widgets[zone].value) # Pass the current value
             else:
                 # Checkbox unchecked - REMOVE the zone's widgets VBox if present
                 if target_zone_widgets in current_children:
@@ -520,19 +536,26 @@ class SelectingScenario(widgets.VBox):
                     self.widget_species_select.children = tuple(
                         child for child in current_children if child != target_zone_widgets
                     )
-                     # Also clear the selection and output explicitly if needed
+                     # Also clear the selection and output explicitly
+                    # *** Use species_select_widgets and output_widgets defined outside this function ***
                     species_select_widgets[zone].value = []
                     with output_widgets[zone]:
                           clear_output()
                 else:
                     print(f"Widgets for zone '{zone}' not currently displayed.") #DEBUG
+            # --- End of logic you pasted ---
 
-        # ... (rest of setup_species_widgets, returning the dict) ...
-        # Make sure you are assigning the on_checkbox_change handler correctly
+        # *** 3. Assign the handler to the checkboxes (loop comes AFTER definitions) ***
+        print(f"Assigning observers to checkboxes: {list(checkboxes.keys())}") # DEBUG
         for zone, checkbox in checkboxes.items():
             checkbox.observe(on_checkbox_change, names="value")
 
-        # ... return the dict ...
+        # ... (rest of function, return dict) ...
+        return {
+            "checkboxes": checkboxes,
+            "species_select_widgets": species_select_widgets,
+            "output_widgets": output_widgets,
+        }
 
     @property
     def selected_data(self):
