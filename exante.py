@@ -729,57 +729,38 @@ class ExAnteCalc(AllometryLibrary):
                 self.csu_form.display_form()
                 # print("Step 10: CSUEntryForm displayed.")
 
-                # # COLAB-SPECIFIC FIX START =================================
-                # if is_running_in_colab():
-                #     from google.colab import output
-                #     output.clear()  # Clear previous widget states
-                    
-                #     # Display form elements sequentially
-                #     display(self.csu_form.form)
-                #     display(self.csu_form.output)
-                    
-                #     # Force widget registration
-                #     output.register_widget(self.csu_form.add_row_button)
-                #     output.register_widget(self.csu_form.reset_button)
-                # else:
-                #     self.csu_form.display_form()
-                # # COLAB-SPECIFIC FIX END ===================================
-
-                # Add a submit button for the CSU form
-                print("Creating Submit CSU Seedling button ---> please submit after all data is added...")
-                # COLAB COMPATIBLE DISPLAY ==============================
+                # ========== COLAB-SPECIFIC FIX ==========
                 if is_running_in_colab():
-                    # Clear previous outputs
                     from google.colab import output
-                    output.clear()
+                    output.clear()  # Critical for Colab
                     
-                    # Display form components in a fixed order
-                    display(widgets.HTML("<h4>Data Entry Form</h4>"))
-                    display(self.csu_form.form)
-                    display(self.csu_form.output)
+                    # Display form (simplified for Colab)
+                    display(widgets.VBox([
+                        widgets.HTML("<h4>Data Entry Form</h4>"),
+                        self.csu_form.form,
+                        self.csu_form.output
+                    ]))
                 else:
                     self.csu_form.display_form()
-                # ======================================================
-
-                # Step 11: Submit button
-                print("Step 11: Creating Submit CSU Seedling button...")
+                
+                # Create AND DISPLAY button in the same operation
                 self.submit_csu_form_button = widgets.Button(
-                    description="Submit CSU Seedling",
-                    layout=widgets.Layout(width='200px')  # Makes button more visible
+                    description="SUBMIT CSU DATA",
+                    button_style='danger',  # Red for visibility
+                    layout=widgets.Layout(width='300px', height='50px')
                 )
                 self.submit_csu_form_button.on_click(self.on_submit_form_csu)
-
-                # COLAB COMPATIBLE BUTTON DISPLAY ======================
+                
                 if is_running_in_colab():
-                    display(widgets.HTML("<hr>"))
-                    display(widgets.HTML(
-                        "<p style='color:red'>After completing data entry:</p>"
-                    ))
-                    display(self.submit_csu_form_button)
+                    display(widgets.VBox([
+                        widgets.HTML("<hr>"),
+                        widgets.HTML("<b style='color:red'>COMPLETE THESE STEPS:</b>"),
+                        widgets.HTML("1. Fill out the form above<br>2. Click this button when done"),
+                        self.submit_csu_form_button
+                    ]))
                 else:
                     display(self.submit_csu_form_button)
-                # ======================================================
-                # print("Click submit above if you done setup the csu \n------------------------------------")
+                # ========== END FIX ==========
 
             
             except Exception as e:
