@@ -674,7 +674,8 @@ class ExAnteCalc(AllometryLibrary):
         self.output = widgets.Output()
 
         # Create the submit button
-        submit_button = widgets.Button(description="Submit species!")
+        submit_button = widgets.Button(description="Submit species!", button_style='danger',  # Red for visibilit
+                                       )
         submit_button.on_click(self.on_submit_click)  # Attach the submit action
 
         # Display the widget, button, and output
@@ -683,7 +684,7 @@ class ExAnteCalc(AllometryLibrary):
             display(widgets.VBox([
                 widgets.HTML("<hr>"),
                 widgets.HTML("<b style='color:red'>COMPLETE THESE STEPS:</b>"),
-                widgets.HTML("1. Fill out the countries and allometry type, and then species list <br>2. Click this button when done"),
+                widgets.HTML("1. Fill out the countries and allometry type, and then select relevant zones with its species list <br>2. Click this button when done"),
                 submit_button
             ]))
         else:
