@@ -515,16 +515,19 @@ class CSUEntryForm:
         Display the form and the output area.
         """
         try:
-            if is_running_in_colab():
-                # Colab-specific display handling
-                import IPython
-                IPython.display.clear_output()
-                IPython.display.display(self.form)
-                IPython.display.display(self.output)
-            else:
-                # Standard Jupyter display
-                display(self.form)
-                display(self.output)
+            # if is_running_in_colab():
+            #     # Colab-specific display handling
+            #     import IPython
+            #     IPython.display.clear_output()
+            #     IPython.display.display(self.form)
+            #     IPython.display.display(self.output)
+            # else:
+                # # Standard Jupyter display
+                # display(self.form)
+                # display(self.output)
+            display(self.form)
+            display(self.output)
+                
         except Exception as e:
             print(f"Error displaying form: {e}")
             import traceback
