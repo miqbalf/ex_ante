@@ -27,32 +27,39 @@ class SelectingScenario(widgets.VBox):
         self.allometric_column_filter = allometric_column_filter
         self.name_column_species_allo = name_column_species_allo
 
-        self.country_allometry = widgets.SelectMultiple(
-            options=list(self.allometric_column_filter["Country of Use"].unique()),
-            value=["Indonesia", "Singapore"],
-            description="Country of Use:",
-            disabled=False,
-        )
-
-        self.list_widget_holder = widgets.HBox()
+        # Initialize data holder
         self.df_tree_selected = {
             "production_zone": pd.DataFrame(),
             "protected_zone": pd.DataFrame(),
         }
 
-        self.widget_species_select = widgets.VBox()  # ✅ Start with an empty VBox
+        # Country selector
+        self.country_allometry = widgets.SelectMultiple(
+            options=list(self.allometric_column_filter["Country of Use"].unique()),
+            value=["Indonesia", "Singapore"],
+            description="Country of Use:",
+        )
 
-        # Setup observers BEFORE calling super to avoid double triggering
+        # Placeholder widgets
+        self.list_widget_holder = widgets.HBox()
+        self.widget_species_select = widgets.VBox()
+        self.dynamic_output_holder = widgets.VBox()
+
+        # Observe country change
         self.country_allometry.observe(self._add_allo_type, names=["value"])
 
-        # ✅ Call super AFTER setting up everything, and include all child widgets at once
-        super().__init__(children=[
+        # Layout
+        children = [
             self.country_allometry,
             self.list_widget_holder,
-            self.widget_species_select,  # already created here
-        ])
+            self.widget_species_select,
+            self.dynamic_output_holder,
+        ]
 
-        # ✅ Trigger initial setup
+        # Initialize VBox
+        super().__init__(children=children)
+
+        # Trigger initial setup
         self._add_allo_type({'new': self.country_allometry.value})
 
     def filter_or_selection(self, df_string_var, column_name, *args):
