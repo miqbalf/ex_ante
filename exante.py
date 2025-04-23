@@ -726,7 +726,7 @@ class ExAnteCalc(AllometryLibrary):
                 print("Step 8: Initializing CSUEntryForm...")
                 self.csu_form = CSUEntryForm(plot_csu)
                 print("Step 9: Displaying CSUEntryForm...")
-                self.csu_form.display_form()
+                # self.csu_form.display_form()
                 # print("Step 10: CSUEntryForm displayed.")
 
                 # COLAB-SPECIFIC FIX START =================================
@@ -747,6 +747,10 @@ class ExAnteCalc(AllometryLibrary):
 
                 # Add a submit button for the CSU form
                 print("Step 11: Creating Submit CSU Seedling button ---> please submit after all data is added...")
+                # Add a submit button for the CSU form
+                self.submit_csu_form_button = widgets.Button(
+                    description="Submit CSU Seedling"
+                )
                 self.submit_csu_form_button.on_click(self.on_submit_form_csu)
             
                 if is_running_in_colab():
@@ -781,8 +785,8 @@ class ExAnteCalc(AllometryLibrary):
             print(f"CSU Seedling data saved to {self.gdrive_location_seedling}")
 
             # Generate widgets for the next step
-            # self.generate_species_widgets()
-            # print("Proceeding to widget generation for scenario data.")
+            self.generate_species_widgets()
+            print("Proceeding to widget generation for scenario data.")
 
     def generate_species_widgets(self):
         """Step 3: Generate and display species-specific widgets for zones"""
