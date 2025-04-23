@@ -10,6 +10,8 @@
 import ipywidgets as widgets
 import pandas as pd
 from IPython.display import display, clear_output
+import traceback # Import for detailed error printing
+
 from ipywidgets import interact, interact_manual, interactive
 from google.colab import output
 output.enable_custom_widget_manager()
@@ -473,13 +475,146 @@ class SelectingScenario(widgets.VBox):
     # Make sure the on_checkbox_change handler correctly adds/removes children
     # from self.widget_species_select (the VBox container)
     def setup_species_widgets(self, name_column_species_allo):
-        # ... (initial checks, filtering, creating output_widgets, species_select_widgets) ...
+        print("--- setup_species_widgets ---") # DEBUG
 
-        # *** 1. Define checkboxes dictionary ***
+        # --- Initial checks ---
+        # Check if prerequisite dataframes/widgets exist and have values
+        if not hasattr(self, "country_filtered_df") or self.country_filtered_df.empty:
+            print("ERROR: setup_species_widgets - country_filtered_df not ready.")
+            return {} # Return empty dict indicating failure
+        if not hasattr(self, "allometric_select") or not getattr(self.allometric_select, 'value', None):
+            # Check if allometric_select widget exists and has a value selected
+            print("WARN: setup_species_widgets - allometric_select not ready or no value selected.")
+            # Return {} means nothing will be displayed until a selection is made.
+            return {}
+
+        current_allo_value = self.allometric_select.value
+        print(f"Filtering using Allom.type(s): {current_allo_value}") # DEBUG
+
+        # --- Filter by Allometry Type (Define filtered_by_country_allo_type) ---
+        try:
+            # Ensure self.filter_or_selection method exists and works
+            # OR use direct pandas filtering as a safer alternative (recommended if eval is causing issues)
+            print(f"Attempting to filter country_filtered_df (shape: {self.country_filtered_df.shape}) by Allometry Type...") # DEBUG
+
+            # --- Using your filter_or_selection function (ensure it's defined correctly in the class) ---
+            # Make sure the first argument ('self.country_filtered_df') matches how your function expects it (string or object)
+            # If filter_or_selection expects the actual DataFrame object, use:
+            # filtered_by_country_allo_type = self.filter_or_selection(
+            #     self.country_filtered_df, # Pass the object directly
+            #     "Allometric Formula, Type",
+            #     *current_allo_value
+            # )
+            # If it still expects a string for eval:
+            filtered_by_country_allo_type = self.filter_or_selection(
+                "self.country_filtered_df",      # DataFrame source (as string for eval)
+                "Allometric Formula, Type", # Column to filter
+                *current_allo_value         # Selected value(s) from the widget
+            )
+            # --- End of filtering call ---
+
+            print(f"Filtering successful. Result shape: {filtered_by_country_allo_type.shape}") # DEBUG
+
+        except Exception as e:
+            print(f"CRITICAL ERROR during Allometry Type filtering: {e}") # DEBUG
+            traceback.print_exc() # Print full traceback for detailed error info
+            # *** If filtering fails, the variable is NOT defined. Return {} to stop. ***
+            return {}
+        # --- Variable 'filtered_by_country_allo_type' is now defined (if no exception) ---
+
+        # --- Check the result of filtering ---
+        if filtered_by_country_allo_type.empty:
+            print("WARN: Filtering by Allometry Type resulted in an empty DataFrame (0 rows). No species options available for this selection.")
+            # Return empty dict, as no species can be listed
+            return {}
+
+        # Check if the required species column exists in the filtered data
+        if name_column_species_allo not in filtered_by_country_allo_type.columns:
+            print(f"ERROR: Species column '{name_column_species_allo}' not found in the filtered data after allometry selection.")
+            return {} # Return empty dict
+
+        # --- Prepare species list for widgets ---
+        # Reset index to ensure 0-based indexing for the f-string keys
+        filtered_by_country_allo_type = filtered_by_country_allo_type.reset_index(drop=True)
+        combine_list = [
+            f"{idx}-{species}"
+            for idx, species in zip(
+                filtered_by_country_allo_type.index, # Uses the new 0-based index
+                filtered_by_country_allo_type[name_column_species_allo].fillna("Unknown") # Handle potential missing species names
+            )
+        ]
+
+        if not combine_list:
+            print("WARN: combine_list is empty even though filtered DataFrame was not. Check species column content (might be all null).")
+            return {}
+
+        print(f"Generated combine_list (species options): Count={len(combine_list)}, First 5={combine_list[:5]}") # DEBUG
+
+        # --- Define Output Widgets (Must come before widgets using its keys) ---
+        output_widgets = {
+            "production_zone": widgets.Output(),
+            "protected_zone": widgets.Output(),
+        }
+        print(f"Defined output_widgets for zones: {list(output_widgets.keys())}") # DEBUG
+
+        # --- Define Nested Function for Filtering Displayed DataFrame ---
+        # This function uses 'filtered_by_country_allo_type' and 'output_widgets' from the outer scope (closure)
+        def filter_function(zone, species_selection_wid_value): # Renamed param for clarity
+            print(f"Filter function called for zone '{zone}' with selection: {species_selection_wid_value}") # DEBUG
+            selected_indices = [int(i.split("-")[0]) for i in species_selection_wid_value] # Assumes index generated for combine_list
+
+            # Use .loc with the indices derived from combine_list
+            if selected_indices:
+                try:
+                    # Select rows based on the index used in combine_list
+                    selected_df = filtered_by_country_allo_type.loc[selected_indices].copy() # Use .copy()
+                    selected_df["zone"] = zone
+                    self.df_tree_selected[zone] = selected_df # Assign to class attribute
+                    print(f"Updated df_tree_selected[{zone}] shape: {self.df_tree_selected[zone].shape}") # DEBUG
+                except KeyError as ke:
+                    print(f"ERROR: KeyError accessing index {ke} in filtered_by_country_allo_type (shape {filtered_by_country_allo_type.shape}). Indices from selection: {selected_indices}")
+                    self.df_tree_selected[zone] = pd.DataFrame() # Reset on error
+                except Exception as e:
+                    print(f"ERROR selecting rows in filter_function: {e}")
+                    self.df_tree_selected[zone] = pd.DataFrame() # Reset on error
+            else:
+                self.df_tree_selected[zone] = pd.DataFrame() # Reset to an empty DataFrame if no selection
+
+            # Update the specific zone's output area
+            if zone in output_widgets:
+                with output_widgets[zone]:
+                    clear_output(wait=True)
+                    if not self.df_tree_selected[zone].empty:
+                        display(self.df_tree_selected[zone])
+            else:
+                print(f"WARN: Zone '{zone}' not found in output_widgets during filter_function update.")
+
+
+        # --- Define Species Select Widgets (Uses output_widgets.keys and combine_list) ---
+        species_select_widgets = {
+            zone: widgets.SelectMultiple(
+                options=combine_list,
+                value=[],
+                description=f'Species ({zone.replace("_", " ")}):',
+                disabled=False,
+                rows=min(len(combine_list), 10), # Limit rows
+                style={'description_width': 'initial'},
+                layout=widgets.Layout(width="auto", min_width="400px")
+            )
+            for zone in output_widgets.keys()
+        }
+        # Add observer to update display when species selection changes
+        for zone, wid in species_select_widgets.items():
+            wid.observe(
+                lambda change, z=zone, w=wid: filter_function(z, w.value),
+                names='value'
+            )
+
+
+        # --- Define Checkboxes (Uses output_widgets.keys) ---
         checkboxes = {
             zone: widgets.Checkbox(
                 value=False,
-                # Use a consistent description format if needed
                 description=f'Enable {zone.replace("_", " ").capitalize()}',
                 disabled=False,
                 indent=False,
@@ -487,70 +622,57 @@ class SelectingScenario(widgets.VBox):
             for zone in output_widgets.keys()
         }
 
-        # *** 2. Define the handler function using the logic you pasted ***
+        # --- Define Checkbox Handler (uses variables from outer scope) ---
         def on_checkbox_change(change):
-            # --- Start of logic you pasted ---
             checkbox_widget = change['owner']
             zone = ""
-             # Find zone key associated with this checkbox instance
-            # *** Use the 'checkboxes' dictionary defined *outside* this function ***
+            # Find zone key associated with this checkbox instance
             for z, cb in checkboxes.items():
-                 if cb == checkbox_widget:
-                      zone = z
-                      break
+                if cb == checkbox_widget:
+                    zone = z
+                    break
             if not zone:
-                 print("WARN: Could not determine zone from checkbox.")
-                 return
+                print("WARN: on_checkbox_change - Could not determine zone from checkbox.")
+                return
 
-            # *** Use self.species_selection_widgets defined in the outer scope ***
             target_zone_widgets = self.species_selection_widgets.get(zone)
             if not target_zone_widgets:
-                 print(f"WARN: Could not find widgets for zone '{zone}' in self.species_selection_widgets")
-                 return
+                print(f"WARN: on_checkbox_change - Could not find widgets for zone '{zone}'")
+                return
 
             is_checked = change['new']
             print(f"Checkbox '{checkbox_widget.description}' changed to {is_checked} for zone '{zone}'") #DEBUG
 
-            # Ensure self.widget_species_select (the VBox container) exists
-            # *** Use self.widget_species_select defined in the outer scope ***
             if not self.widget_species_select:
-                 print("ERROR: self.widget_species_select is None in on_checkbox_change!")
-                 return
+                print("ERROR: on_checkbox_change - self.widget_species_select is None!")
+                return
 
             current_children = list(self.widget_species_select.children)
 
             if is_checked:
-                # Checkbox checked - ADD the zone's widgets VBox if not already present
                 if target_zone_widgets not in current_children:
-                    print(f"Adding widgets for zone '{zone}'") #DEBUG
+                    print(f"Adding widgets for zone '{zone}' to the display") #DEBUG
                     self.widget_species_select.children = tuple(current_children + [target_zone_widgets])
                 else:
-                     print(f"Widgets for zone '{zone}' already present.") #DEBUG
-                # Trigger update of the output area within the zone widget?
-                # You might need to call filter_function here if you want the table displayed immediately
-                # filter_function(zone, species_select_widgets[zone].value) # Pass the current value
+                    print(f"Widgets for zone '{zone}' already present.") #DEBUG
+                filter_function(zone, species_select_widgets[zone].value) # Update display
             else:
-                # Checkbox unchecked - REMOVE the zone's widgets VBox if present
                 if target_zone_widgets in current_children:
-                    print(f"Removing widgets for zone '{zone}'") #DEBUG
+                    print(f"Removing widgets for zone '{zone}' from the display") #DEBUG
                     self.widget_species_select.children = tuple(
                         child for child in current_children if child != target_zone_widgets
                     )
-                     # Also clear the selection and output explicitly
-                    # *** Use species_select_widgets and output_widgets defined outside this function ***
-                    species_select_widgets[zone].value = []
-                    with output_widgets[zone]:
-                          clear_output()
+                    species_select_widgets[zone].value = [] # Observer will trigger filter_function
                 else:
                     print(f"Widgets for zone '{zone}' not currently displayed.") #DEBUG
-            # --- End of logic you pasted ---
 
-        # *** 3. Assign the handler to the checkboxes (loop comes AFTER definitions) ***
+        # --- Assign the handler to Checkboxes ---
         print(f"Assigning observers to checkboxes: {list(checkboxes.keys())}") # DEBUG
         for zone, checkbox in checkboxes.items():
             checkbox.observe(on_checkbox_change, names="value")
 
-        # ... (rest of function, return dict) ...
+        # --- Return dictionary ---
+        print("--- End setup_species_widgets (returning dict) ---") # DEBUG
         return {
             "checkboxes": checkboxes,
             "species_select_widgets": species_select_widgets,
