@@ -777,7 +777,6 @@ class ExAnteCalc(AllometryLibrary):
 
     def on_submit_form_csu(self, button):
         """Handles submission of CSU seedling data"""
-        print('handle the submission for scenario is started')
         with self.output:
             # Save the updated DataFrame
             self.csu_form.csu_seedling.to_csv(
@@ -799,6 +798,8 @@ class ExAnteCalc(AllometryLibrary):
                 species: len(self.co2_data_dict[species]) - 1
                 for species in self.unique_species_selected
             }
+
+            display(self.df_selected)
 
             # Generate widgets for production and protected zones
             if "production_zone" in self.df_selected:
