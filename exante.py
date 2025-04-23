@@ -675,7 +675,7 @@ class ExAnteCalc(AllometryLibrary):
 
         # Create the submit button
         submit_button = widgets.Button(description="Submit species!")
-        submit_button.on_click(self.on_submit_click)  # Attach the submit action
+        # submit_button.on_click(self.on_submit_click)  # Attach the submit action
 
         # Display the widget, button, and output
         display(self.wm)
