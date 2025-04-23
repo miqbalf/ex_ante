@@ -200,18 +200,15 @@ class SelectingScenario(widgets.VBox):
                     self.widget_species_select.children += (
                         self.species_selection_widgets[zone],
                     )
-                interactive(
-                    filter_function,
-                    zone=widgets.fixed(zone),
-                    species_selection_wid=species_select_widgets[zone],
-                )
+                # ✅ Call the function directly for Colab compatibility
+                filter_function(zone, species_selection_wid=species_select_widgets[zone])
             else:
                 # Checkbox unchecked - reset selection, clear output, and remove widgets for the zone
                 species_select_widgets[zone].value = []  # Clear selections
-                self.df_tree_selected[zone] = (
-                    pd.DataFrame()
-                )  # Reset to an empty DataFrame
+                self.df_tree_selected[zone] = pd.DataFrame()  # Reset to an empty DataFrame
                 output_widgets[zone].clear_output()  # Clear the output widget
+
+                # ✅ REMOVE the zone widget instead of adding it again
                 self.widget_species_select.children = tuple(
                     child
                     for child in self.widget_species_select.children
