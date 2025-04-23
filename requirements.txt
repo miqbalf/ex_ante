@@ -27,16 +27,16 @@ beautifulsoup4==4.12.3
 Jinja2==3.1.4
 
 #override version for widget to work
-ipywidgets==8.1.5
-jupyter-client==8.6.3 
-jupyter-core==5.7.2
-# jupyter-console==6.6.3
-# jupyter-events==0.10.0
-# jupyter-leaflet==0.19.2
-# jupyter-lsp==2.2.52
-# jupyter_server==2.14.2
-# jupyter_server_terminals==0.5.3
-jupyterlab==4.3.2
-jupyterlab_pygments==0.3.0
-jupyterlab_server==2.27.3
-jupyterlab_widgets==3.0.13
+# ipywidgets==8.1.5
+# jupyter-client==8.6.3 
+# jupyter-core==5.7.2
+# # jupyter-console==6.6.3
+# # jupyter-events==0.10.0
+# # jupyter-leaflet==0.19.2
+# # jupyter-lsp==2.2.52
+# # jupyter_server==2.14.2
+# # jupyter_server_terminals==0.5.3
+# jupyterlab==4.3.2
+# jupyterlab_pygments==0.3.0
+# jupyterlab_server==2.27.3
+# jupyterlab_widgets==3.0.13
