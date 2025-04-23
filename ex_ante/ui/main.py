@@ -43,7 +43,8 @@ class SelectingScenario(widgets.VBox):
         }  # Initialize empty dataframes
 
         # Placeholder for species selection widget
-        self.widget_species_select = None
+        # self.widget_species_select = None
+        self.widget_species_select = widgets.VBox([])
 
         # Observe country selection
         self.country_allometry.observe(self._add_allo_type, names=["value"])
@@ -51,7 +52,7 @@ class SelectingScenario(widgets.VBox):
         self._add_allo_type({'new': self.country_allometry.value})
 
         # Add initial widgets
-        children = [self.country_allometry, self.list_widget_holder]
+        children = [self.country_allometry, self.list_widget_holder, self.widget_species_select]
         super().__init__(children=children)
 
     # Function to automate filter selection
@@ -114,10 +115,17 @@ class SelectingScenario(widgets.VBox):
                 self.name_column_species_allo
             )
 
-            # Wrap only the checkboxes in a VBox initially
-            self.widget_species_select = widgets.VBox(
-                [widgets.VBox(list(species_selection_dict["checkboxes"].values()))]
-            )
+            # # Wrap only the checkboxes in a VBox initially
+            # self.widget_species_select = widgets.VBox(
+            #     [widgets.VBox(list(species_selection_dict["checkboxes"].values()))]
+            # )
+
+            # First clear any children
+            self.widget_species_select.children = []
+
+            # Add checkboxes first
+            checkboxes_vbox = widgets.VBox(list(species_selection_dict["checkboxes"].values()))
+            self.widget_species_select.children += (checkboxes_vbox,)
 
             # Store the species selection and output widgets for each zone separately
             self.species_selection_widgets = {
@@ -224,6 +232,8 @@ class SelectingScenario(widgets.VBox):
                     for child in self.widget_species_select.children
                     if child != self.species_selection_widgets[zone]
                 )
+            print("Current VBox children after update:", self.widget_species_select.children)
+
 
         for zone, checkbox in checkboxes.items():
             checkbox.observe(on_checkbox_change, names="value")
