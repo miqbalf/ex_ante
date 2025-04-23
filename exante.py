@@ -750,6 +750,7 @@ class ExAnteCalc(AllometryLibrary):
 
     def on_submit_form_csu(self, button):
         """Handles submission of CSU seedling data"""
+        print('handle the submission for scenario is started')
         with self.output:
             # Save the updated DataFrame
             self.csu_form.csu_seedling.to_csv(
