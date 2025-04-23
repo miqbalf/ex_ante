@@ -799,31 +799,35 @@ class ExAnteCalc(AllometryLibrary):
                 for species in self.unique_species_selected
             }
 
-            display(self.df_selected)
+            # display(self.df_selected)
+            # if "production_zone" in self.df_selected:
+            #     self.widget_production_zone = self.create_species_widgets(
+            #         self.df_selected["production_zone"], grouping_max_year
+            #     )
+            #     print("Production/Plantation zone widgets:")
+            #     display(self.widget_production_zone)
 
-            # Generate widgets for production and protected zones
+            # if "protected_zone" in self.df_selected:
+            #     self.widget_protected_zone = self.create_species_widgets(
+            #         self.df_selected["protected_zone"], grouping_max_year
+            #     )
+            #     print("\n------------------------------------------------")
+            #     print("Protected zone widgets:")
+            #     display(self.widget_protected_zone)
+
+            def check_zone(zone, df):
+                # Generate widgets for production and protected zones
+                widget_zone = self.create_species_widgets(
+                    self.df[zone], grouping_max_year
+                )
+                print(f"{zone} widgets:")
+                display(widget_zone)
+                return widget_zone
+            
             if "production_zone" in self.df_selected:
-                self.widget_production_zone = self.create_species_widgets(
-                    self.df_selected["production_zone"], grouping_max_year
-                )
-                print("Production/Plantation zone widgets:")
-                display(self.widget_production_zone)
-
+                self.widget_production_zone = check_zone("production_zone", self.df_selected)
             if "protected_zone" in self.df_selected:
-                self.widget_protected_zone = self.create_species_widgets(
-                    self.df_selected["protected_zone"], grouping_max_year
-                )
-                print("\n------------------------------------------------")
-                print("Protected zone widgets:")
-                display(self.widget_protected_zone)
-
-            if "is_replanting" in self.df_selected:
-                self.widget_replanting = self.create_species_widgets(
-                    self.df_selected["is_replanting"], grouping_max_year
-                )
-                print("\n------------------------------------------------")
-                print("replanting widgets:")
-                display(self.widget_replanting)
+                self.widget_protected_zone = check_zone("protected_zone", self.df_selected)
 
             # Add a final submit button
             self.final_submit_button = widgets.Button(
