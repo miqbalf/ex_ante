@@ -22,9 +22,6 @@ from ex_ante.utils.max_density import get_max_density
 from IPython.display import display
 from ipywidgets import interact, interact_manual, interactive, widgets
 
-from google.colab import output
-output.enable_custom_widget_manager()
-
 # Load the .env file
 load_dotenv()
 
@@ -40,6 +37,16 @@ allometry_csv_abs_path = os.path.join(
     current_directory, "ex_ante/00_input/allometry_model_2024-08-13.csv"
 )
 
+import sys
+
+def is_colab():
+    """Detects if running in Google Colab"""
+    return 'google.colab' in sys.modules
+
+# Initialize Colab if needed
+if is_colab():
+    from google.colab import output
+    output.enable_custom_widget_manager()
 
 class AllometryLibrary(AllometryFormulaDB, GrowthModelSpecies):
 
@@ -678,10 +685,6 @@ class ExAnteCalc(AllometryLibrary):
         with self.output:
             print("Step 1: Submit button clicked.")
             try: # Add try block for better error catching
-                # Add Colab-specific widget initialization
-                if 'google.colab' in str(get_ipython()):
-                    from google.colab import output
-                    output.enable_custom_widget_manager()
                 # Capture selected data
                 self.df_selected = self.wm.selected_data
                 if not self.df_selected or not any(not df.empty for df in self.df_selected.values()):
