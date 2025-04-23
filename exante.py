@@ -815,21 +815,53 @@ class ExAnteCalc(AllometryLibrary):
             #     print("Protected zone widgets:")
             #     display(self.widget_protected_zone)
 
-            display(self.csu_seedling)
+            # display(self.csu_seedling)
 
-            def check_zone(zone, df):
+            # self.list_widget_species_scenario = []
+            self.list_widget_variable_name = []
+            def check_zone(zone, df, is_replanting):
                 # Generate widgets for production and protected zones
+                # Filter the DataFrame based on the combination index
+                filtered_df = df.loc[(is_replanting, zone)]
+                
                 widget_zone = self.create_species_widgets(
-                    df[zone], grouping_max_year
+                    filtered_df, grouping_max_year
                 )
-                print(f"{zone} widgets:")
+                
+                print(f"{zone} & is_replanting ({is_replanting}) widgets:")
                 display(widget_zone)
                 return widget_zone
             
-            if "production_zone" in self.df_selected:
-                self.widget_production_zone = check_zone("production_zone", self.df_selected)
-            if "protected_zone" in self.df_selected:
-                self.widget_protected_zone = check_zone("protected_zone", self.df_selected)
+            # create a cleaned_list_species based on csu_seedling to get the info of is_replanting, zone, species_list that has >0 num_trees
+            df_melted = pd.melt(self.csu_seedling, 
+                            id_vars=['is_replanting', 'zone'], # Replace with your actual ID columns
+                            value_vars=[col for col in self.csu_seedling.columns if col.endswith('_num_trees')],
+                            var_name=self.name_column_species_allo,
+                            value_name='num_trees')
+
+            cleaned_list_species = df_melted[df_melted['num_trees']>0]
+            cleaned_list_species = cleaned_list_species.set_index(['is_replanting', 'zone'])
+
+            # Sort the DataFrame by the 'is_replanting' index level in ascending order
+            cleaned_list_species = cleaned_list_species.sort_index(level='is_replanting', ascending=True)
+            cleaned_list_species[self.name_column_species_allo] = cleaned_list_species[self.name_column_species_allo].str.replace('_num_trees', '')
+
+            # Iterate through the unique combinations of the index
+            for index_tuple in cleaned_list_species.index.unique():
+                is_replanting, zone = index_tuple
+                variable_name = f"widget_{is_replanting}_{zone}"
+
+                # Check if the combination exists in cleaned_list_species
+                if index_tuple in cleaned_list_species.index:
+                    # self.list_widget_species_scenario.append(exec(f"{variable_name}"))
+                    # self.list_widget_species_scenario.append(check_zone(zone, cleaned_list_species, is_replanting))
+                    
+                    # Call check_zone and assign the returned widget to the dynamically named variable
+                    exec(f"self.{variable_name} = check_zone('{zone}', cleaned_list_species, {is_replanting})")
+                    self.list_widget_variable_name.append(variable_name)
+                else:
+                    print(f"Combination {index_tuple} not found in cleaned_list_species.")
+                print("\n-----------------------------------------------------------------------------------------")
 
             # Add a final submit button
             self.final_submit_button = widgets.Button(
@@ -876,35 +908,41 @@ class ExAnteCalc(AllometryLibrary):
         self.input_scenario_species = {}
 
         # Define widget zones and corresponding names
-        zones = {
-            "production_zone": getattr(self, "widget_production_zone", None),
-            "protected_zone": getattr(self, "widget_protected_zone", None),
-        }
+        # this can be improve to be readable, but it just to change the variable name into value, for example from widget_True_protected_zone into (True, protected_zone) from this (bool(eval(i.replace('widget_','').split('_')[0])), i.replace('widget_','').split('_')[1]+'_zone')
+        index_widget = {(bool(eval(i.replace('widget_','').split('_')[0])), i.replace('widget_','').split('_')[1]+'_zone') : getattr(self, i.replace('self.',''), None) for i in self.list_widget_variable_name}
+        # print(index_widget)
 
-        # Loop through each zone, only processing zones with existing widgets
-        for zone_name, widget_zone in zones.items():
+        # for i in index_widget.items():
+        #   print(i)
+
+
+        for (is_replanting, zone_name), widget_zone in index_widget.items():
             if widget_zone is not None:
-                # Collect data for each species in the zone
                 input_scenario_per_zone = {}
                 for widget in widget_zone.children:
-                    # Extract species name and details from the widget
-                    species_name = (
-                        widget.wid_species_name.value.split(">")[2]
-                        .replace("</b", "")
-                        .strip()
-                    )
-                    input_scenario_per_zone[species_name] = {
-                        "harvesting_year": widget.year_harvesting.value,
-                        "mortality_percent": widget.mortality_percent.value,
-                        "natural_thinning": widget.natural_thinning.value,
-                        "frequency_manual_thinning": widget.frequency_thinning.value,
-                    }
+                    try:
+                        species_name = (
+                            widget.wid_species_name.value.split(">")[2]
+                            .replace("</b", "")
+                            .strip()
+                        )
+                        input_scenario_per_zone[species_name] = {
+                            "harvesting_year": widget.year_harvesting.value,
+                            "mortality_percent": widget.mortality_percent.value,
+                            "natural_thinning": widget.natural_thinning.value,
+                            "frequency_manual_thinning": widget.frequency_thinning.value,
+                        }
+                        input_scenario_per_zone[species_name].update(widget.check)
+                    except (AttributeError, IndexError) as e:
+                        print(f"Warning: Error processing widget in zone {zone_name}: {e}")
+                        continue
 
-                    # Add any additional parameters from the widget's `check` property
-                    input_scenario_per_zone[species_name].update(widget.check)
-
-                # Add this zone's data to the main dictionary
-                self.input_scenario_species[zone_name] = input_scenario_per_zone
+                if is_replanting:
+                    self.input_scenario_species['replanting'] = {zone_name: input_scenario_per_zone}
+                else:
+                    self.input_scenario_species['non_replanting'] = {zone_name: input_scenario_per_zone}
+        
+        # display(self.input_scenario_species)
 
         # Save the dictionary to a JSON file only if data was collected
         if self.input_scenario_species:
