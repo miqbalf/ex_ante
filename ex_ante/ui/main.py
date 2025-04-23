@@ -95,15 +95,18 @@ class SelectingScenario(widgets.VBox):
         self.update_species_select()
 
     def update_species_select(self, *args):
-        """Update the species selection widget based on the selected allometry type."""
-        print("Species widgets updated with:", self.widget_species_select.children)
+        """Update the species selection widget based on the selected allometry type."""  
         if self.name_column_species_allo:
+            # Ensure self.widget_species_select exists
+            if self.widget_species_select is None:
+                self.widget_species_select = widgets.VBox([])
+
+            print("Species widgets updated with:", self.widget_species_select.children)
+
             # Clear previous widget if it exists
             if self.widget_species_select in self.children:
                 self.children = [
-                    child
-                    for child in self.children
-                    if child != self.widget_species_select
+                    child for child in self.children if child != self.widget_species_select
                 ]
 
             # Get the updated species selection dictionary
