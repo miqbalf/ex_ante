@@ -729,7 +729,7 @@ class ExAnteCalc(AllometryLibrary):
                 # print("Step 10: CSUEntryForm displayed.")
 
                 # Add a submit button for the CSU form
-                print("Step 11: Creating Submit CSU Seedling button...")
+                print("Step 11: Creating Submit CSU Seedling button ---> please submit after all data is added...")
                 self.submit_csu_form_button = widgets.Button(description="Submit CSU Seedling")
                 # Ensure the target method exists!
                 if not hasattr(self, 'on_submit_form_csu'):
@@ -741,7 +741,7 @@ class ExAnteCalc(AllometryLibrary):
 
                 # print("Step 12: Displaying Submit CSU Seedling button...")
                 display(self.submit_csu_form_button)
-                print("Step 13: on_submit_click finished.")
+                # print("Step 13: on_submit_click finished.")
 
             except Exception as e:
                 print(f"ERROR in on_submit_click: {e}")
