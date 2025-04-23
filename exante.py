@@ -489,6 +489,7 @@ class ExAnteCalc(AllometryLibrary):
             csv_plot_summary_zone = True  # as default for now
             duration_project = input("How long the project will last? (Default: 30 years) [Enter number only]: ")
             duration_project = int(duration_project) if duration_project.strip() else 30
+            print(f"Project duration set to: {duration_project} years")
             # Gap Harvest (default: False)
             gap_input = input("Enable gap harvest? (Default: no) [yes/no]: ").lower()
             gap_harvest = (
@@ -496,16 +497,17 @@ class ExAnteCalc(AllometryLibrary):
                 False if gap_input in ["false", "no", "0", "n"] or not gap_input.strip() else 
                 (print("Invalid input, using default (no)"), False)[1]
             )
+            print(f"Gap harvest enabled: {gap_harvest}")
 
             # Harvesting Max Percent (default: 59.9)
             harvest_input = input("Max harvest percentage? (Default: 59.9%) [Enter number only]: ")
             harvesting_max_percent = float(harvest_input) if harvest_input.strip() else 59.9
-            
+            print(f"Max harvest set to: {harvesting_max_percent}%")
             # Planting Year (default: current year)
             from datetime import datetime
             year_input = input(f"Planting start year? (Default: {datetime.now().year}) [Enter number only]: ")
             planting_year = int(year_input) if year_input.strip() else datetime.now().year
-
+            print(f"Planting year set to: {planting_year}")
             self.json_path_config = os.path.join(
                 self.config_location, f"{project_name}_main.json"
             )
