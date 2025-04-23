@@ -16,10 +16,11 @@ from ex_ante.csi_tree.main import CSIExante
 from ex_ante.plot.utils import calc_plot_csu
 from ex_ante.population_tco2.main import num_tco_years
 from ex_ante.ui.main import CSUEntryForm, Project_Setting_Species, SelectingScenario
+from ex_ante.ui.utils import is_running_in_colab
 from ex_ante.utils.calc_formula_string import calc_biomass_formula
 from ex_ante.utils.helper import adding_zero_meas, cleaning_csv_df
 from ex_ante.utils.max_density import get_max_density
-from IPython.display import display
+from IPython.display import display, HTML
 from ipywidgets import interact, interact_manual, interactive, widgets
 
 # Load the .env file
@@ -728,21 +729,40 @@ class ExAnteCalc(AllometryLibrary):
                 self.csu_form.display_form()
                 # print("Step 10: CSUEntryForm displayed.")
 
+                # COLAB-SPECIFIC FIX START =================================
+                if is_running_in_colab():
+                    from google.colab import output
+                    output.clear()  # Clear previous widget states
+                    
+                    # Display form elements sequentially
+                    display(self.csu_form.form)
+                    display(self.csu_form.output)
+                    
+                    # Force widget registration
+                    output.register_widget(self.csu_form.add_row_button)
+                    output.register_widget(self.csu_form.reset_button)
+                else:
+                    self.csu_form.display_form()
+                # COLAB-SPECIFIC FIX END ===================================
+
                 # Add a submit button for the CSU form
                 print("Step 11: Creating Submit CSU Seedling button ---> please submit after all data is added...")
-                self.submit_csu_form_button = widgets.Button(description="Submit CSU Seedling")
-                # Ensure the target method exists!
-                if not hasattr(self, 'on_submit_form_csu'):
-                    print("ERROR: Target method 'on_submit_form_csu' does not exist!")
-                    # Optionally disable the button or don't display it
-                    self.submit_csu_form_button.disabled = True
+                self.submit_csu_form_button.on_click(self.on_submit_form_csu)
+            
+                if is_running_in_colab():
+                    from google.colab import output
+                    output.register_widget(self.submit_csu_form_button)
+                    display(HTML("<hr>"))  # Visual separator
+                    display(self.submit_csu_form_button)
+                    display(HTML("<p>Click submit after completing data entry</p>"))
                 else:
-                    self.submit_csu_form_button.on_click(self.on_submit_form_csu)
-
+                    display(self.submit_csu_form_button)
+                    
                 print("----------------------------------------------")
                 display(self.submit_csu_form_button)
-                print("Click submit above if you done setup the csu \n------------------------------------")
+                # print("Click submit above if you done setup the csu \n------------------------------------")
 
+            
             except Exception as e:
                 print(f"ERROR in on_submit_click: {e}")
                 import traceback
