@@ -9,7 +9,7 @@
 # for interactivity
 import ipywidgets as widgets
 import pandas as pd
-from IPython.display import display
+from IPython.display import display, clear_output
 from ipywidgets import interact, interact_manual, interactive
 from google.colab import output
 output.enable_custom_widget_manager()
@@ -17,6 +17,8 @@ output.enable_custom_widget_manager()
 from .utils import filter_or_selection
 
 
+
+'''
 class SelectingScenario(widgets.VBox):
     def __init__(
         self, allometric_column_filter: pd.DataFrame, name_column_species_allo: str = ""
@@ -64,6 +66,7 @@ class SelectingScenario(widgets.VBox):
         return eval(filter_df_string)
 
     def _add_allo_type(self, change):
+        print("Triggered _add_allo_type with:", change["new"])
         country_selected = change["new"]
         self.country_filtered_df = self.filter_or_selection(
             "self.allometric_column_filter", "Country of Use", *country_selected
@@ -242,7 +245,304 @@ class SelectingScenario(widgets.VBox):
     def selected_data(self):
         """Returns a dictionary of selected DataFrames for each zone."""
         return {zone: df for zone, df in self.df_tree_selected.items() if not df.empty}
+'''
 
+# Assuming filter_or_selection is robust or replaced later
+
+class SelectingScenario(widgets.VBox):
+    def __init__(
+        self, allometric_column_filter: pd.DataFrame, name_column_species_allo: str = ""
+    ):
+        print("--- SelectingScenario Init ---") # DEBUG
+        self.allometric_column_filter = allometric_column_filter
+        self.name_column_species_allo = name_column_species_allo
+
+        # --- Widgets ---
+        # Country Selector
+        self.country_allometry = widgets.SelectMultiple(
+            # Ensure options are valid before setting value
+            options=list(self.allometric_column_filter["Country of Use"].unique()),
+            value=[c for c in ["Indonesia", "Singapore"] if c in self.allometric_column_filter["Country of Use"].unique()], # Safer default value
+            description="Country of Use:",
+            disabled=False,
+            style={'description_width': 'initial'}, layout=widgets.Layout(width='auto')
+        )
+
+        # Holder for Allometry Selector
+        self.list_widget_holder = widgets.HBox()
+
+        # *** NEW: Dedicated Output Area for Species Selection Part ***
+        self.species_output_area = widgets.Output()
+        # ************************************************************
+
+        # --- Data Store ---
+        self.df_tree_selected = {
+            "production_zone": pd.DataFrame(),
+            "protected_zone": pd.DataFrame(),
+        }
+
+        # --- Placeholders ---
+        self.widget_species_select = None # VBox holding checkboxes and zone widgets
+        self.species_selection_widgets = {} # Dict storing VBoxes for each zone's species list+output
+        self.allometric_select = None # Placeholder for the allometry widget itself
+        self.country_filtered_df = pd.DataFrame() # Placeholder
+
+        # --- Observers ---
+        self.country_allometry.observe(self._add_allo_type, names="value")
+
+        # --- Initial Layout ---
+        # Children now include the new output area
+        initial_children = [self.country_allometry, self.list_widget_holder, self.species_output_area]
+        super().__init__(children=initial_children)
+
+        # --- Trigger initial setup ---
+        # Call _add_allo_type with the initial value to populate allometry options
+        print("Triggering initial _add_allo_type call.") #DEBUG
+        self._add_allo_type({'new': self.country_allometry.value, 'owner': self.country_allometry, 'type': 'change', 'name': 'value'})
+        print("--- SelectingScenario Init Finished ---") # DEBUG
+
+
+    # Function to automate filter selection (Keep as is, but consider replacing eval)
+    def filter_or_selection(self, df_string_var, column_name, *args):
+        # Basic safety checks for eval
+        safe_args = [str(arg).replace('"', '\\"') for arg in args if arg]
+        base_df = eval(df_string_var) # Get the DataFrame instance
+
+        if not safe_args:
+             print(f"WARN: No valid args for filtering {column_name}.") # DEBUG
+             return base_df.head(0)
+
+        # --- Alternative using Pandas boolean indexing (safer than eval) ---
+        conditions = None
+        for arg in safe_args:
+            condition = (base_df[column_name] == arg)
+            if conditions is None:
+                conditions = condition
+            else:
+                conditions = conditions | condition # Combine with OR
+
+        if conditions is None: # Should not happen if safe_args is not empty, but belt-and-suspenders
+             return base_df.head(0)
+
+        print(f"Filtering {df_string_var} where '{column_name}' is in {safe_args}") # DEBUG
+        return base_df[conditions]
+        # --- End Alternative ---
+
+        # Original eval code (commented out if using alternative)
+        # filter_df_string = f"{df_string_var}["
+        # conditions_str = []
+        # for arg in safe_args:
+        #     conditions_str.append(f'({df_string_var}["{column_name}"] == "{arg}")')
+        # filter_df_string += " | ".join(conditions_str) + "]"
+        # print(f"EVAL FILTER: {filter_df_string}") # DEBUG
+        # try:
+        #     return eval(filter_df_string)
+        # except Exception as e:
+        #      print(f"ERROR during eval: {e}")
+        #      return base_df.head(0)
+
+
+    def _add_allo_type(self, change):
+        print("--- _add_allo_type ---") # DEBUG
+        country_selected = change["new"]
+        print(f"Countries selected: {country_selected}") # DEBUG
+
+        # Clear downstream widgets first
+        self.list_widget_holder.children = []
+        with self.species_output_area:
+             clear_output()
+        self.widget_species_select = None
+        self.species_selection_widgets = {}
+
+        if not country_selected:
+             print("No country selected. Clearing allometry and species areas.") # DEBUG
+             return # Stop if selection is empty
+
+        try:
+            # Use the safer filtering method if implemented
+            self.country_filtered_df = self.filter_or_selection(
+                "self.allometric_column_filter", "Country of Use", *country_selected
+            )
+            # Or use original:
+            # self.country_filtered_df = self.filter_or_selection_eval(
+            #     "self.allometric_column_filter", "Country of Use", *country_selected
+            # )
+            print(f"Country filtered DF shape: {self.country_filtered_df.shape}") # DEBUG
+            if self.country_filtered_df.empty:
+                 print("WARN: No data found for selected countries.") # DEBUG
+                 return # Stop if no data
+
+            allo_options = sorted(list(self.country_filtered_df["Allometric Formula, Type"].unique())) # Sort options
+            print(f"Allometry options generated: {allo_options}") # DEBUG
+            if not allo_options:
+                 print("WARN: No allometry types found for these countries.") # DEBUG
+                 return # Stop if no options
+
+            # Allometry type selection widget
+            self.allometric_select = widgets.SelectMultiple(
+                options=allo_options,
+                value=[allo_options[0]], # Default to first option safely
+                description="Allom.type:",
+                disabled=False,
+                style={'description_width': 'initial'}, layout=widgets.Layout(width='auto')
+            )
+            print(f"Created allometry selector with default value: {self.allometric_select.value}") #DEBUG
+
+        except Exception as e:
+            print(f"ERROR in _add_allo_type filtering/widget creation: {e}") # DEBUG
+            import traceback
+            traceback.print_exc()
+            return
+
+        # Update list holder with the new allometry widget
+        self.list_widget_holder.children = (self.allometric_select,)
+
+        # Add observer for dynamic updates when user CHANGES allometry selection
+        self.allometric_select.observe(self.update_species_select, names="value")
+
+        # Trigger the species update using the DEFAULT allometry value set above
+        print(f"Triggering initial update_species_select call with allometry value: {self.allometric_select.value}") # DEBUG
+        self.update_species_select({'new': self.allometric_select.value, 'owner': self.allometric_select, 'type': 'change', 'name': 'value'})
+        print("--- End _add_allo_type ---") # DEBUG
+
+
+    def update_species_select(self, change): # Accept the change dict
+        print("--- update_species_select ---") # DEBUG
+        print(f"Change event received: name={change.get('name')}, new={change.get('new')}") # DEBUG
+
+        # Clear previous state in the dedicated output area
+        with self.species_output_area:
+            clear_output(wait=True) # Use wait=True to reduce flicker
+
+        self.widget_species_select = None # Reset placeholder
+        self.species_selection_widgets = {} # Reset placeholder
+
+        if not self.name_column_species_allo:
+             print("WARN: name_column_species_allo not set.") #DEBUG
+             return
+
+        # Ensure allometric_select widget exists and has a value
+        if not hasattr(self, 'allometric_select') or not getattr(self.allometric_select, 'value', None):
+             print("WARN: allometry type selection is empty or widget doesn't exist.") #DEBUG
+             return
+
+        print(f"Updating species list for allometry selection: {self.allometric_select.value}") # DEBUG
+
+        # Get the updated species selection dictionary
+        species_selection_dict = self.setup_species_widgets(
+            self.name_column_species_allo
+        )
+        print(f"Result from setup_species_widgets: Keys={list(species_selection_dict.keys()) if species_selection_dict else 'None'}") # DEBUG
+
+        if not species_selection_dict or not species_selection_dict.get("checkboxes"):
+             print("WARN: setup_species_widgets did not return valid structure. No species area displayed.") # DEBUG
+             # Output area is already cleared above.
+             print("--- End update_species_select (failed setup) ---") # DEBUG
+             return
+
+        # --- Create the container VBox for checkboxes and dynamic zone widgets ---
+        # This VBox will be displayed inside self.species_output_area
+        checkbox_vbox = widgets.VBox(list(species_selection_dict["checkboxes"].values()))
+        self.widget_species_select = widgets.VBox([checkbox_vbox]) # Holds checkboxes + active zone widgets
+        print("Created new species widget area (checkbox container).") # DEBUG
+
+        # --- Store the widgets for each zone ---
+        # These VBoxes (species list + output) will be added/removed from self.widget_species_select by the checkbox handler
+        self.species_selection_widgets = {
+            zone: widgets.VBox(
+                [
+                    species_selection_dict["species_select_widgets"][zone],
+                    species_selection_dict["output_widgets"][zone],
+                ], layout=widgets.Layout(margin='0 0 0 20px') # Indent zone widgets
+            )
+            for zone in species_selection_dict["species_select_widgets"].keys()
+        }
+        print(f"Stored zone widgets for: {list(self.species_selection_widgets.keys())}") #DEBUG
+
+        # --- Display the Checkbox container in the dedicated Output area ---
+        with self.species_output_area:
+            # Output area was already cleared with wait=True
+            print("Displaying species selection checkboxes...") # Optional status message
+            display(self.widget_species_select) # Display the VBox with checkboxes
+
+        print(f"Displayed species widget area in the Output widget.") # DEBUG
+        print("--- End update_species_select ---") # DEBUG
+
+    # setup_species_widgets: Keep the debug prints suggested previously inside this method.
+    # Ensure it returns {} or an empty dict if filtering fails or combine_list is empty.
+    # Make sure the on_checkbox_change handler correctly adds/removes children
+    # from self.widget_species_select (the VBox container)
+    def setup_species_widgets(self, name_column_species_allo):
+        # (Keep the version with detailed debug prints from the previous answer)
+        # ... (ensure it handles empty filters gracefully and returns {} on failure) ...
+
+        # --- Make sure the checkbox handler logic is correct ---
+        def on_checkbox_change(change):
+            checkbox_widget = change['owner']
+            zone = ""
+             # Find zone key associated with this checkbox instance
+            for z, cb in checkboxes.items(): # Use checkboxes dict created in this scope
+                 if cb == checkbox_widget:
+                      zone = z
+                      break
+            if not zone:
+                 print("WARN: Could not determine zone from checkbox.")
+                 return
+
+            target_zone_widgets = self.species_selection_widgets.get(zone)
+            if not target_zone_widgets:
+                 print(f"WARN: Could not find widgets for zone '{zone}' in self.species_selection_widgets")
+                 return
+
+            is_checked = change['new']
+            print(f"Checkbox '{checkbox_widget.description}' changed to {is_checked} for zone '{zone}'") #DEBUG
+
+            # Ensure self.widget_species_select (the VBox container) exists
+            if not self.widget_species_select:
+                 print("ERROR: self.widget_species_select is None in on_checkbox_change!")
+                 return
+
+            current_children = list(self.widget_species_select.children)
+
+            if is_checked:
+                # Checkbox checked - ADD the zone's widgets VBox if not already present
+                if target_zone_widgets not in current_children:
+                    print(f"Adding widgets for zone '{zone}'") #DEBUG
+                    self.widget_species_select.children = tuple(current_children + [target_zone_widgets])
+                else:
+                     print(f"Widgets for zone '{zone}' already present.") #DEBUG
+                # Trigger update of the output area within the zone widget
+                # filter_function(zone, species_selection_wid=species_select_widgets[zone].value) # Pass the *value*
+            else:
+                # Checkbox unchecked - REMOVE the zone's widgets VBox if present
+                if target_zone_widgets in current_children:
+                    print(f"Removing widgets for zone '{zone}'") #DEBUG
+                    self.widget_species_select.children = tuple(
+                        child for child in current_children if child != target_zone_widgets
+                    )
+                     # Also clear the selection and output explicitly if needed
+                    species_select_widgets[zone].value = []
+                    with output_widgets[zone]:
+                          clear_output()
+                else:
+                    print(f"Widgets for zone '{zone}' not currently displayed.") #DEBUG
+
+        # ... (rest of setup_species_widgets, returning the dict) ...
+        # Make sure you are assigning the on_checkbox_change handler correctly
+        for zone, checkbox in checkboxes.items():
+            checkbox.observe(on_checkbox_change, names="value")
+
+        # ... return the dict ...
+
+    @property
+    def selected_data(self):
+        """Returns a dictionary of selected DataFrames for each zone."""
+        return {zone: df for zone, df in self.df_tree_selected.items() if not df.empty}
+
+# --- Example Usage (Illustrative) ---
+# Assuming you have your allometry_df DataFrame loaded
+# manager = InterfaceManager(...) # Or however you create SelectingScenario
+# display(manager.wm) # If wm is the SelectingScenario instance
 
 class Project_Setting_Species(widgets.VBox):
     def __init__(self, species_name, grouping_max_year):
