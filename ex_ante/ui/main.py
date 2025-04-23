@@ -19,235 +19,260 @@ output.enable_custom_widget_manager()
 from .utils import filter_or_selection
 
 
+# Assuming pandas is imported as pd elsewhere
 
 class SelectingScenario(widgets.VBox):
     def __init__(
         self, allometric_column_filter: pd.DataFrame, name_column_species_allo: str = ""
     ):
-
         self.allometric_column_filter = allometric_column_filter
         self.name_column_species_allo = name_column_species_allo
 
         # Select the literature formula - country of origin
         self.country_allometry = widgets.SelectMultiple(
             options=list(self.allometric_column_filter["Country of Use"].unique()),
-            value=["Indonesia", "Singapore"],
+            value=["Indonesia", "Singapore"], # Example default
             description="Country of Use:",
             disabled=False,
         )
 
-        self.list_widget_holder = widgets.HBox()
+        # --- Placeholder for Allometry Type ---
+        self.allometry_select = widgets.SelectMultiple(
+            options=[], value=[], description="Allom.type:", disabled=True
+        )
+        # --- Placeholder for Species Selection Area ---
+        # This VBox will hold checkboxes and the zone-specific widgets
+        self.species_selection_area = widgets.VBox([])
+        # Initially hide the species area
+        self.species_selection_area.layout.display = 'none'
+
+        # --- Store zone widgets ---
+        self.species_widgets_by_zone = {} # Will store {'zone': VBox(SelectMultiple, Output)}
+        self.zone_checkboxes = {}         # Will store {'zone': Checkbox}
+
         self.df_tree_selected = {
             "production_zone": pd.DataFrame(),
             "protected_zone": pd.DataFrame(),
-        }  # Initialize empty dataframes
-
-        # Placeholder for species selection widget
-        self.widget_species_select = None
+        }
 
         # Observe country selection
-        self.country_allometry.observe(self._add_allo_type, names=["value"])
+        self.country_allometry.observe(self._update_allo_options, names=["value"])
+        # Observe allometry selection
+        self.allometry_select.observe(self._update_species_widgets, names=["value"])
 
-        # Add initial widgets
-        children = [self.country_allometry, self.list_widget_holder]
+        # Initial layout
+        children = [
+            self.country_allometry,
+            self.allometry_select,
+            self.species_selection_area # Add the placeholder here
+        ]
         super().__init__(children=children)
 
-    # Function to automate filter selection
-    def filter_or_selection(self, df_string_var, column_name, *args):
-        filter_df_string = f"{df_string_var}["
-        for i in range(len(args)):
-            if args[-1] != args[i]:
-                filter_df_string += (
-                    f'({df_string_var}["{column_name}"] == "{args[i]}" ) |'
-                )
-            else:
-                filter_df_string += (
-                    f'({df_string_var}["{column_name}"] == "{args[i]}" )]'
-                )
-        return eval(filter_df_string)
+        # Trigger initial population based on default country
+        self._update_allo_options({'new': self.country_allometry.value})
 
-    def _add_allo_type(self, change):
+
+    # Refactored filter function using .isin() for clarity and safety
+    def filter_dataframe(self, df, column_name, values):
+         if not isinstance(values, (list, tuple)):
+             values = [values] # Ensure it's a list for isin
+         if not values: # Handle empty selection
+             # Return an empty DataFrame with the same columns
+             return df.iloc[0:0]
+         return df[df[column_name].isin(values)]
+
+    # Renamed for clarity: This updates Allometry options based on Country
+    def _update_allo_options(self, change):
         country_selected = change["new"]
-        self.country_filtered_df = self.filter_or_selection(
-            "self.allometric_column_filter", "Country of Use", *country_selected
+        if not country_selected:
+             self.allometry_select.options = []
+             self.allometry_select.value = []
+             self.allometry_select.disabled = True
+             self.species_selection_area.layout.display = 'none' # Hide species area
+             # Clear downstream selections/data if country is deselected
+             self._clear_species_widgets_and_data()
+             return # Stop processing if no country selected
+
+        self.country_filtered_df = self.filter_dataframe(
+             self.allometric_column_filter, "Country of Use", country_selected
         )
 
-        # Allometry type selection
-        self.allometric_select = widgets.SelectMultiple(
-            options=list(self.country_filtered_df["Allometric Formula, Type"].unique()),
-            value=[
-                list(self.country_filtered_df["Allometric Formula, Type"].unique())[0]
-            ],
-            description="Allom.type:",
-            disabled=False,
-        )
+        new_options = list(self.country_filtered_df["Allometric Formula, Type"].unique())
+        # Keep existing selection if possible, otherwise select first
+        current_value = self.allometry_select.value
+        new_value = [v for v in current_value if v in new_options]
+        if not new_value and new_options:
+            new_value = [new_options[0]] # Default to first if previous selection invalid
 
-        # Update list holder with new widgets
-        self.list_widget_holder.children = (self.allometric_select,)
+        self.allometry_select.options = new_options
+        self.allometry_select.value = new_value # Triggers its observer
+        self.allometry_select.disabled = not bool(new_options)
 
-        # Add observer for dynamic updates
-        self.allometric_select.observe(self.update_species_select, names="value")
+        # If allometry options become empty, hide species area
+        if not new_options:
+             self.species_selection_area.layout.display = 'none'
+             self._clear_species_widgets_and_data()
+        # If allometry has options but no value automatically set, trigger update manually
+        elif new_value and not self.allometry_select.value:
+             self._update_species_widgets({'new': new_value})
 
-        # Initialize or update species selection widget
-        self.update_species_select()
 
-    def update_species_select(self, *args):
-        """Update the species selection widget based on the selected allometry type."""
-        if self.name_column_species_allo:
-            # Clear previous widget if it exists
-            if self.widget_species_select in self.children:
-                self.children = [
-                    child
-                    for child in self.children
-                    if child != self.widget_species_select
-                ]
+    def _clear_species_widgets_and_data(self):
+        """Helper to clear species widgets and reset data."""
+        self.species_selection_area.children = [] # Clear all children (checkboxes, zone VBoxes)
+        self.species_widgets_by_zone = {}
+        self.zone_checkboxes = {}
+        self.df_tree_selected = {
+            "production_zone": pd.DataFrame(),
+            "protected_zone": pd.DataFrame(),
+        }
 
-            # Get the updated species selection dictionary
-            species_selection_dict = self.setup_species_widgets(
-                self.name_column_species_allo
-            )
+    # Renamed for clarity: This updates Species widgets based on Allometry Type
+    def _update_species_widgets(self, change):
+        allo_type_selected = change["new"]
 
-            # Wrap only the checkboxes in a VBox initially
-            self.widget_species_select = widgets.VBox(
-                [widgets.VBox(list(species_selection_dict["checkboxes"].values()))]
-            )
+        # Clear previous species widgets and data first
+        self._clear_species_widgets_and_data()
 
-            # Store the species selection and output widgets for each zone separately
-            self.species_selection_widgets = {
-                zone: widgets.VBox(
-                    [
-                        species_selection_dict["species_select_widgets"][zone],
-                        species_selection_dict["output_widgets"][zone],
-                    ]
-                )
-                for zone in species_selection_dict["species_select_widgets"].keys()
-            }
+        if not self.name_column_species_allo or not allo_type_selected or not hasattr(self, 'country_filtered_df'):
+            self.species_selection_area.layout.display = 'none' # Hide if no species column or selection
+            return
 
-            # Add the checkboxes VBox to the main children
-            self.children += (self.widget_species_select,)
-
-    def setup_species_widgets(self, name_column_species_allo):
-        """Sets up species selection widgets and handles selection logic."""
-        if not hasattr(self, "country_filtered_df"):
-            return {
-                "checkboxes": {},
-                "species_select_widgets": {},
-                "output_widgets": {},
-            }
-
-        filtered_by_country_allo_type = self.filter_or_selection(
-            "self.country_filtered_df",
+        # Filter based on currently selected country AND allometry type
+        self.filtered_by_country_allo_type = self.filter_dataframe(
+            self.country_filtered_df,
             "Allometric Formula, Type",
-            *self.allometric_select.value,
+            allo_type_selected,
         )
+
+        if self.filtered_by_country_allo_type.empty:
+            self.species_selection_area.layout.display = 'none' # Hide if filter results in no species
+            return
+
+        # Prepare species list for options
         combine_list = [
             f"{idx}-{species}"
             for idx, species in zip(
-                filtered_by_country_allo_type.index,
-                filtered_by_country_allo_type[name_column_species_allo],
+                self.filtered_by_country_allo_type.index,
+                self.filtered_by_country_allo_type[self.name_column_species_allo],
             )
         ]
 
-        output_widgets = {
-            "production_zone": widgets.Output(),
-            "protected_zone": widgets.Output(),
-        }
+        if not combine_list: # If no species found for this combo
+            self.species_selection_area.layout.display = 'none'
+            return
 
-        def filter_function(zone, species_selection_wid):
-            selected_indices = [int(i.split("-")[0]) for i in species_selection_wid]
-            if selected_indices:  # Only update if there are selected species
-                self.df_tree_selected[zone] = filtered_by_country_allo_type.loc[
-                    selected_indices
-                ]
-                self.df_tree_selected[zone]["zone"] = zone
-            else:
-                self.df_tree_selected[zone] = (
-                    pd.DataFrame()
-                )  # Reset to an empty DataFrame if no selection
+        # --- Setup widgets for each zone ---
+        zone_widget_children = [] # Holds checkboxes and the zone VBoxes
 
-            output_widgets[zone].clear_output()  # Clear output to avoid duplication
-            with output_widgets[zone]:
-                if not self.df_tree_selected[zone].empty:
-                    display(self.df_tree_selected[zone])
+        zones = ["production_zone", "protected_zone"] # Define your zones
+        output_widgets = {} # Temporary holder within this scope
 
-        species_select_widgets = {
-            zone: widgets.SelectMultiple(
+        def create_filter_function(zone, species_select_widget, output_widget):
+            # Use a closure to capture the correct widgets for each zone
+            def filter_function(species_selection_wid):
+                selected_indices = [int(i.split("-")[0]) for i in species_selection_wid]
+                if selected_indices:
+                    self.df_tree_selected[zone] = self.filtered_by_country_allo_type.loc[
+                        selected_indices
+                    ].copy() # Use .copy() to avoid SettingWithCopyWarning
+                    self.df_tree_selected[zone]["zone"] = zone
+                else:
+                    self.df_tree_selected[zone] = pd.DataFrame()
+
+                # Ensure output_widget is cleared and updated
+                output_widget.clear_output(wait=True) # Use wait=True for smoother updates
+                with output_widget:
+                    if not self.df_tree_selected[zone].empty:
+                        print(f"Selected for {zone}:") # Add label for clarity
+                        display(self.df_tree_selected[zone])
+                    # else:
+                    #     print(f"No species selected for {zone}.") # Optional: message when empty
+            return filter_function
+
+        for zone in zones:
+            output_widgets[zone] = widgets.Output()
+            species_select_widget = widgets.SelectMultiple(
                 options=combine_list,
-                value=[],  # Start with no selection
-                description=f'Selecting species in {zone.replace("_", " ")}: ',
+                value=[],
+                description=f'Select species in {zone.replace("_", " ")}: ',
                 disabled=False,
-                rows=len(combine_list),
-                layout=widgets.Layout(width="600px"),
+                rows=min(len(combine_list), 10), # Limit rows for better display
+                layout=widgets.Layout(width="auto", min_width="400px") # Adjust layout
             )
-            for zone in output_widgets.keys()
-        }
 
-        checkboxes = {
-            zone: widgets.Checkbox(
+            # Create the VBox containing the selector and its output area
+            zone_vbox = widgets.VBox([species_select_widget, output_widgets[zone]])
+            # Hide this zone's widgets initially
+            zone_vbox.layout.display = 'none'
+            self.species_widgets_by_zone[zone] = zone_vbox
+
+            # Create the checkbox for this zone
+            checkbox = widgets.Checkbox(
                 value=False,
-                description=f'Select {zone.replace("_", " ").capitalize()}',
+                description=f'Configure {zone.replace("_", " ").capitalize()}',
                 disabled=False,
                 indent=False,
             )
-            for zone in output_widgets.keys()
-        }
+            self.zone_checkboxes[zone] = checkbox
 
-        def on_checkbox_change(change):
-            zone = change["owner"].description.split(" ")[1].lower() + "_zone"
-            if change["new"]:
-                # Checkbox checked - show only the widgets for the selected zone
-                if (
-                    self.species_selection_widgets[zone]
-                    not in self.widget_species_select.children
-                ):
-                    self.widget_species_select.children += (
-                        self.species_selection_widgets[zone],
-                    )
-                interactive(
-                    filter_function,
-                    zone=widgets.fixed(zone),
-                    species_selection_wid=species_select_widgets[zone],
-                )
-            else:
-                # Checkbox unchecked - reset selection, clear output, and remove widgets for the zone
-                species_select_widgets[zone].value = []  # Clear selections
-                self.df_tree_selected[zone] = (
-                    pd.DataFrame()
-                )  # Reset to an empty DataFrame
-                output_widgets[zone].clear_output()  # Clear the output widget
-                self.widget_species_select.children = tuple(
-                    child
-                    for child in self.widget_species_select.children
-                    if child != self.species_selection_widgets[zone]
-                )
+            # Define the checkbox handler using a closure to capture zone
+            def make_checkbox_observer(current_zone):
+                def on_checkbox_change(change):
+                    target_widget = self.species_widgets_by_zone[current_zone]
+                    if change["new"]: # Checked
+                        target_widget.layout.display = 'flex' # Show the VBox for this zone
+                        # --- Crucially, set up the interactive link *here* ---
+                        # Check if interactive instance already exists for this widget
+                        if not hasattr(species_select_widget, '_interactive_instance'):
+                           species_select_widget._interactive_instance = interactive(
+                                create_filter_function(current_zone, species_select_widget, output_widgets[current_zone]),
+                                species_selection_wid=species_select_widget,
+                           )
+                           # We don't need to display the result of interactive() itself,
+                           # as the widgets are already in our layout.
+                    else: # Unchecked
+                        target_widget.layout.display = 'none' # Hide the VBox
+                        # Reset selection and data when hiding
+                        species_select_widget.value = []
+                        self.df_tree_selected[current_zone] = pd.DataFrame()
+                        output_widgets[current_zone].clear_output()
+                return on_checkbox_change
 
-        for zone, checkbox in checkboxes.items():
-            checkbox.observe(on_checkbox_change, names="value")
+            checkbox.observe(make_checkbox_observer(zone), names="value")
 
-        # Return dictionary with widgets setup
-        return {
-            "checkboxes": checkboxes,
-            "species_select_widgets": species_select_widgets,
-            "output_widgets": output_widgets,
-        }
+            # Add checkbox and the (initially hidden) zone VBox to the list
+            zone_widget_children.append(checkbox)
+            zone_widget_children.append(zone_vbox)
+
+
+        # Update the species area container with the new structure
+        self.species_selection_area.children = tuple(zone_widget_children)
+        # Make the whole species area visible now that it's populated
+        self.species_selection_area.layout.display = 'block'
+
 
     def select_species(self, name_column_species_allo=None):
-        """Sets up or returns the current selection based on available data."""
-        # Use the provided or already set column name
+        """Ensures species column name is set and returns current selection."""
         if name_column_species_allo is not None:
             self.name_column_species_allo = name_column_species_allo
+            # If name is set/changed, we might need to re-trigger the species update
+            # based on the current allometry selection.
+            current_allo_value = self.allometry_select.value
+            if current_allo_value:
+                 self._update_species_widgets({'new': current_allo_value})
 
-        # If no species selection widgets are present, set them up based on the current country and allometry type
-        if self.name_column_species_allo and not self.widget_species_select:
-            self.update_species_select()
-
-        # Return the current selection as a dictionary
         return self.df_tree_selected
 
     @property
     def selected_data(self):
         """Returns a dictionary of selected DataFrames for each zone."""
-        return {zone: df for zone, df in self.df_tree_selected.items() if not df.empty}
+        # Combine data from both zones if needed, or return as is
+        # Example: Concatenate non-empty dataframes
+        # all_selected = pd.concat([df for df in self.df_tree_selected.values() if not df.empty], ignore_index=True)
+        # return all_selected
+        # Or just return the dictionary:
+        return {zone: df.copy() for zone, df in self.df_tree_selected.items()} # Return copies
 
 
 # --- Example Usage (Illustrative) ---
