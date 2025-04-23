@@ -781,8 +781,8 @@ class ExAnteCalc(AllometryLibrary):
             print(f"CSU Seedling data saved to {self.gdrive_location_seedling}")
 
             # Generate widgets for the next step
-            self.generate_species_widgets()
-            print("Proceeding to widget generation for scenario data.")
+            # self.generate_species_widgets()
+            # print("Proceeding to widget generation for scenario data.")
 
     def generate_species_widgets(self):
         """Step 3: Generate and display species-specific widgets for zones"""
