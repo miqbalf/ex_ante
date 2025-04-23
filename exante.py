@@ -678,6 +678,10 @@ class ExAnteCalc(AllometryLibrary):
         with self.output:
             print("Step 1: Submit button clicked.")
             try: # Add try block for better error catching
+                # Add Colab-specific widget initialization
+                if 'google.colab' in str(get_ipython()):
+                    from google.colab import output
+                    output.enable_custom_widget_manager()
                 # Capture selected data
                 self.df_selected = self.wm.selected_data
                 if not self.df_selected or not any(not df.empty for df in self.df_selected.values()):

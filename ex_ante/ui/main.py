@@ -362,6 +362,10 @@ class CSUEntryForm:
         Initialize the data entry form based on the structure of the provided DataFrame.
         Sets default values for widgets based on the column names and data types.
         """
+        if 'google.colab' in str(get_ipython()):
+            from google.colab import output
+            output.enable_custom_widget_manager()
+
         self.csu_seedling = csu_seedling
         self.original_columns = csu_seedling.columns  # Store the original columns
         self.original_dtypes = csu_seedling.dtypes  # Store the original data types
@@ -498,14 +502,35 @@ class CSUEntryForm:
             self.output.clear_output()
 
     def display_form(self):
-        # print("DEBUG: Displaying self.form only...")
-        # display(self.form) # Comment this out
-        # print("DEBUG: Displaying self.output only...")
-        # display(self.output) # Comment this out
-
-        print("DEBUG: Displaying a simple test button...")
+        """
+        Display the form and the output area.
+        """
+        if 'google.colab' in str(get_ipython()):
+            # Colab-specific display
+            import IPython
+            IPython.display.clear_output()
+            IPython.display.display(self.form)
+            IPython.display.display(self.output)
+        else:
+            # Standard Jupyter display
+            display(self.form)
+            display(self.output)
+        # display(self.form, self.output)
+        print("DEBUG: Attempting to display form in Colab...")
         try:
-            test_button = widgets.Button(description="Simple Test Display")
-            display(test_button) # Display a brand new, simple widget
+            # # Test with a simple widget first
+            # test_button = widgets.Button(description="Test Button")
+            # display(test_button)
+            # print("DEBUG: Simple button displayed successfully")
+            
+            # Then try displaying the form
+            display(self.form)
+            print("DEBUG: Form displayed successfully")
+            
+            # Finally display the output
+            display(self.output)
+            print("DEBUG: Output displayed successfully")
         except Exception as e:
-            print(f"ERROR displaying simple test button: {e}")
+            print(f"ERROR in display_form: {e}")
+            import traceback
+            traceback.print_exc()
