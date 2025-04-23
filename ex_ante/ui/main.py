@@ -47,7 +47,7 @@ class SelectingScenario(widgets.VBox):
 
         self._add_allo_type({'new': self.country_allometry.value})
 
-        self.children = [self.country_allometry, self.list_widget_holder]
+        # self.children = [self.country_allometry, self.list_widget_holder]
 
     def filter_or_selection(self, df_string_var, column_name, *args):
         filter_df_string = f"{df_string_var}["
