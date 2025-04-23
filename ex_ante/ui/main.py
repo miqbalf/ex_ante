@@ -497,8 +497,12 @@ class CSUEntryForm:
         with self.output:
             self.output.clear_output()
 
-    # Modify CSUEntryForm.display_form
     def display_form(self):
-        print("DEBUG: Displaying self.form only...")
-        display(self.form) # Try this first
-        # display(self.output) # Comment this out
+        # print("DEBUG: Displaying self.form only...")
+        # display(self.form) # Comment this out
+
+        print("DEBUG: Displaying self.output only...")
+        try:
+            display(self.output) # Try displaying only this
+        except Exception as e:
+            print(f"ERROR displaying self.output: {e}")
