@@ -22,6 +22,9 @@ from ex_ante.utils.max_density import get_max_density
 from IPython.display import display
 from ipywidgets import interact, interact_manual, interactive, widgets
 
+from google.colab import output
+output.enable_custom_widget_manager()
+
 # Load the .env file
 load_dotenv()
 

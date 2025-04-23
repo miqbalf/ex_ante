@@ -11,6 +11,8 @@ import ipywidgets as widgets
 import pandas as pd
 from IPython.display import display
 from ipywidgets import interact, interact_manual, interactive
+from google.colab import output
+output.enable_custom_widget_manager()
 
 from .utils import filter_or_selection
 
