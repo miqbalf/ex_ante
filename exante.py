@@ -815,6 +815,8 @@ class ExAnteCalc(AllometryLibrary):
             #     print("Protected zone widgets:")
             #     display(self.widget_protected_zone)
 
+            display(self.csu_seedling)
+
             def check_zone(zone, df):
                 # Generate widgets for production and protected zones
                 widget_zone = self.create_species_widgets(
