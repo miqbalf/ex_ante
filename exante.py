@@ -699,13 +699,16 @@ class ExAnteCalc(AllometryLibrary):
                 self.acquire_growth_data() # Ensure this defines self.unique_species_selected if needed below
                 print("Step 6: Growth data acquired.")
 
-                # Check unique_species_selected again before creating columns
-                if not hasattr(self, 'unique_species_selected') or not self.unique_species_selected:
-                    print("ERROR: self.unique_species_selected not populated after acquire_growth_data.")
-                    return
-
-                # Create template DataFrame
-                list_column_name = [...] # As before
+                # Create a template DataFrame
+                list_column_name = [
+                    "Plot_ID",
+                    "Plot_Name",
+                    "zone",
+                    "area_ha",
+                    "year_start",
+                    "mu",
+                ] + [f"{species}_num_trees" for species in self.unique_species_selected]
+                plot_csu = pd.DataFrame(columns=list_column_name)
                 plot_csu = pd.DataFrame(columns=list_column_name)
                 print("Step 7: Template DataFrame created.")
                 display(plot_csu)
