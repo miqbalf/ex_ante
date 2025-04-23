@@ -22,3 +22,11 @@ def filter_or_selection(df_string_var, column_name, *args):
     # return allometric_country_selected
 
     return filter_df_string
+
+def is_running_in_colab():
+    """Detect if we're running in Google Colab"""
+    try:
+        import google.colab
+        return True
+    except ImportError:
+        return False

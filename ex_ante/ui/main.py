@@ -16,7 +16,7 @@ from ipywidgets import interact, interact_manual, interactive
 from google.colab import output
 output.enable_custom_widget_manager()
 
-from .utils import filter_or_selection
+from .utils import filter_or_selection, is_running_in_colab
 
 class SelectingScenario(widgets.VBox):
     def __init__(
@@ -362,16 +362,16 @@ class CSUEntryForm:
         Initialize the data entry form based on the structure of the provided DataFrame.
         Sets default values for widgets based on the column names and data types.
         """
-        if 'google.colab' in str(get_ipython()):
-            from google.colab import output
-            output.enable_custom_widget_manager()
-
         self.csu_seedling = csu_seedling
         self.original_columns = csu_seedling.columns  # Store the original columns
         self.original_dtypes = csu_seedling.dtypes  # Store the original data types
         # The DataFrame to which rows will be added
         self.widgets_dict = {}  # Dictionary to hold widgets for each column
         self.output = widgets.Output()  # Output widget to display the DataFrame
+
+        # Initialize Colab-specific settings if needed
+        if is_running_in_colab():
+            self._init_colab_settings()
 
         # Initialize widgets based on DataFrame columns
         self._initialize_widgets()
@@ -391,6 +391,15 @@ class CSUEntryForm:
         ]
         print(f"DEBUG [CSUEntryForm]: Total widgets in self.form VBox: {len(form_items)}") # Add this print
         self.form = widgets.VBox(form_items)
+
+    def _init_colab_settings(self):
+        """Initialize Colab-specific settings"""
+        try:
+            from google.colab import output
+            output.enable_custom_widget_manager()
+            print("Colab widget manager enabled")
+        except Exception as e:
+            print(f"Could not enable Colab widget manager: {e}")
 
     def _initialize_widgets(self):
         """
@@ -505,32 +514,18 @@ class CSUEntryForm:
         """
         Display the form and the output area.
         """
-        if 'google.colab' in str(get_ipython()):
-            # Colab-specific display
-            import IPython
-            IPython.display.clear_output()
-            IPython.display.display(self.form)
-            IPython.display.display(self.output)
-        else:
-            # Standard Jupyter display
-            display(self.form)
-            display(self.output)
-        # display(self.form, self.output)
-        print("DEBUG: Attempting to display form in Colab...")
         try:
-            # # Test with a simple widget first
-            # test_button = widgets.Button(description="Test Button")
-            # display(test_button)
-            # print("DEBUG: Simple button displayed successfully")
-            
-            # Then try displaying the form
-            display(self.form)
-            print("DEBUG: Form displayed successfully")
-            
-            # Finally display the output
-            display(self.output)
-            print("DEBUG: Output displayed successfully")
+            if is_running_in_colab():
+                # Colab-specific display handling
+                import IPython
+                IPython.display.clear_output()
+                IPython.display.display(self.form)
+                IPython.display.display(self.output)
+            else:
+                # Standard Jupyter display
+                display(self.form)
+                display(self.output)
         except Exception as e:
-            print(f"ERROR in display_form: {e}")
+            print(f"Error displaying form: {e}")
             import traceback
             traceback.print_exc()
