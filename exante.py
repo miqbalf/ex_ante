@@ -862,47 +862,24 @@ class ExAnteCalc(AllometryLibrary):
                 else:
                     print(f"Combination {index_tuple} not found in cleaned_list_species.")
                 # print("\n-----------------------------------------------------------------------------------------")
+           
+            forms_ui = []
 
-            if is_running_in_colab():
-                from google.colab import output
-                output.clear()
-            
             for var_name in self.list_widget_variable_name:
                 widget_instance = getattr(self, var_name)
-                
-                                   
-                # Display form (simplified for Colab)
-                display(widgets.VBox([
-                    widgets.HTML(f"<h4>Forestry Scenario Form {var_name.replace('_', ' ')}</h4>"),
+                forms_ui.append(widgets.VBox([
+                    widgets.HTML(f"<h4>Forestry Scenario Form - Replanting {var_name.replace('widget_', '').replace('_zone','').replace('_',' ')}</h4>"),
                     widget_instance
                 ]))
-                print("\n-----------------------------------------------------------------------------------------")
-            
-            # # Add a final submit button
-            # self.final_submit_button = widgets.Button(
-            #     description="Submit Scenario Data"
-            # )
+                forms_ui.append(widgets.HTML("<hr>"))
 
-            # self.final_submit_button.on_click(self.on_final_submit_click)
+            # Add submit instructions and button
+            forms_ui.append(widgets.HTML("<b style='color:red'>COMPLETE THESE STEPS:</b>"))
+            forms_ui.append(widgets.HTML("1. Fill out the scenario forestry for each species and zone.<br>2. Click this button when done."))
+            forms_ui.append(self.final_submit_button)
 
-            # Create AND DISPLAY button in the same operation
-            self.final_submit_button = widgets.Button(
-                description="Submit Scenario Data",
-                button_style='danger',  # Red for visibility
-                layout=widgets.Layout(width='300px', height='50px')
-            )
-            self.final_submit_button.on_click(self.on_final_submit_click)
-            
-            if is_running_in_colab():
-                display(widgets.VBox([
-                    widgets.HTML("<hr>"),
-                    widgets.HTML("<b style='color:red'>COMPLETE THESE STEPS:</b>"),
-                    widgets.HTML("1. Fill out the scenario forestry for each species and each type of group (zone, replanting etc) \
-                    <br>2. Click this button when done"),
-                    self.final_submit_button
-                ]))
-            else:
-                display(self.final_submit_button)
+            # Display everything together
+            display(widgets.VBox(forms_ui))
 
     def on_final_submit_click(self, button):
         """Triggered when the final submit button is clicked to capture widget data"""
