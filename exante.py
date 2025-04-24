@@ -1132,47 +1132,49 @@ class ExAnteCalc(AllometryLibrary):
 
         return all_df_merged
 
-    # def cooling_service(self, all_df_merged=None, use_input_cooling=""):
-    #     if use_input_cooling == "":
-    #         # start to create input cooling and generate the result
-    #         self.input_gcs = input_cooling(
-    #             all_df_merged,
-    #             self.growth_melt,
-    #             self.name_column_species_growth,
-    #             self.conf_general["planting_year"],
-    #         )
-    #         file_input = self.gdrive_input_cs
-    #         file_input = os.path.normpath(file_input)
-    #         # file_input = os.path.join(input_base_dir,file_input_name)
+    def cooling_service(self, all_df_merged=None, use_input_cooling=""):
+        if use_input_cooling == "":
+            # start to create input cooling and generate the result
+            self.input_gcs = input_cooling(
+                all_df_merged,
+                self.growth_melt,
+                self.name_column_species_growth,
+                self.conf_general["planting_year"],
+            )
+            file_input = self.gdrive_input_cs
+            file_input = os.path.normpath(file_input)
+            # file_input = os.path.join(input_base_dir,file_input_name)
 
-    #         self.input_gcs.to_csv(file_input, index=False)
-    #         print(
-    #             f"file input to estimating the cooling and reflux effect: {file_input}"
-    #         )
+            self.input_gcs.to_csv(file_input, index=False)
+            print(
+                f"file input to estimating the cooling and reflux effect: {file_input}"
+            )
 
-    #         file_input_name = os.path.basename(file_input)
-    #         # starting to call the class needed - Stefan Script
-    #         cs = CSink(csv_filename_path=file_input, is_file_path=True)
-    #         c = Cooling(cs, is_file_path=True)
+            file_input_name = os.path.basename(file_input)
+            # starting to call the class needed - Stefan Script - no access yet for public
+            # cs = CSink(csv_filename_path=file_input, is_file_path=True)
+            # c = Cooling(cs, is_file_path=True)
 
-    #         output_folder = self.root_folder
-    #         output_file_name = os.path.join(output_folder, "cooling-output_")
+            # output_folder = self.root_folder
+            # output_file_name = os.path.join(output_folder, "cooling-output_")
 
-    #         # c.reporting()
-    #         # c.plot(is_save_img_graph= False)
-    #         c.to_file(
-    #             output_file_name + file_input_name
-    #         )  # save into the complete name the output_gcs
-    #         print(f"file output csv saved into {output_file_name + file_input_name}")
+            # # c.reporting()
+            # # c.plot(is_save_img_graph= False)
+            # c.to_file(
+            #     output_file_name + file_input_name
+            # )  # save into the complete name the output_gcs
+            # print(f"file output csv saved into {output_file_name + file_input_name}")
 
-    #     else:
-    #         # starting to call the class needed - Stefan Script
-    #         cs = CSink(csv_filename_path=use_input_cooling, is_file_path=True)
-    #         c = Cooling(cs, is_file_path=True)
+        else:
+            # # starting to call the class needed - Stefan Script
+            # cs = CSink(csv_filename_path=use_input_cooling, is_file_path=True)
+            # c = Cooling(cs, is_file_path=True)
 
-    #         # let's not save the output because we already have it usually
+            # let's not save the output because we already have it usually
+            pass
 
-    #     return c
+        # will comment this for the moment, because no access to cooling input calc yet
+        # return c
 
     # def graph_cooling_service(self, cooling, location_save=""):
     #     cooling.reporting()
