@@ -863,12 +863,31 @@ class ExAnteCalc(AllometryLibrary):
                     print(f"Combination {index_tuple} not found in cleaned_list_species.")
                 print("\n-----------------------------------------------------------------------------------------")
 
-            # Add a final submit button
+            # # Add a final submit button
+            # self.final_submit_button = widgets.Button(
+            #     description="Submit Scenario Data"
+            # )
+
+            # self.final_submit_button.on_click(self.on_final_submit_click)
+
+            # Create AND DISPLAY button in the same operation
             self.final_submit_button = widgets.Button(
-                description="Submit Scenario Data"
+                description="Submit Scenario Data",
+                button_style='danger',  # Red for visibility
+                layout=widgets.Layout(width='300px', height='50px')
             )
             self.final_submit_button.on_click(self.on_final_submit_click)
-            display(self.final_submit_button)
+            
+            if is_running_in_colab():
+                display(widgets.VBox([
+                    widgets.HTML("<hr>"),
+                    widgets.HTML("<b style='color:red'>COMPLETE THESE STEPS:</b>"),
+                    widgets.HTML("1. Fill out the scenario forestry for each species and each type of group (zone, replanting etc) \
+                    <br>2. Click this button when done"),
+                    self.final_submit_button
+                ]))
+            else:
+                display(self.final_submit_button)
 
     def on_final_submit_click(self, button):
         """Triggered when the final submit button is clicked to capture widget data"""
