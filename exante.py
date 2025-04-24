@@ -873,6 +873,14 @@ class ExAnteCalc(AllometryLibrary):
                 ]))
                 forms_ui.append(widgets.HTML("<hr>"))
 
+            # Then display the submit button clearly afterward
+            self.final_submit_button = widgets.Button(
+                description="Submit Scenario Data",
+                button_style='danger',
+                layout=widgets.Layout(width='300px', height='50px')
+            )
+            self.final_submit_button.on_click(self.on_final_submit_click)
+
             # Add submit instructions and button
             forms_ui.append(widgets.HTML("<b style='color:red'>COMPLETE THESE STEPS:</b>"))
             forms_ui.append(widgets.HTML("1. Fill out the scenario forestry for each species and zone.<br>2. Click this button when done."))
