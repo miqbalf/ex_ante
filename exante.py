@@ -957,9 +957,9 @@ class ExAnteCalc(AllometryLibrary):
                         continue
 
                 if is_replanting:
-                    self.input_scenario_species['replanting'] = {zone_name: input_scenario_per_zone}
+                    self.input_scenario_species.setdefault('replanting', {})[zone_name] = input_scenario_per_zone
                 else:
-                    self.input_scenario_species['non_replanting'] = {zone_name: input_scenario_per_zone}
+                    self.input_scenario_species.setdefault('non_replanting', {})[zone_name] = input_scenario_per_zone
         
         # display(self.input_scenario_species)
 
