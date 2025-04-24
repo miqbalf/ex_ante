@@ -309,13 +309,13 @@ class Project_Setting_Species(widgets.VBox):
         )
     
     @staticmethod
-    def create_float_text_widget(self, description, default):
+    def create_float_text_widget(description, default):
         return widgets.FloatText(
             value=default,
             description=description,
-            step=0.1,
+            # step=0.1,
             style={'description_width': 'initial'},
-            layout=widgets.Layout(width='250px')
+            # layout=widgets.Layout(width='250px')
         )
 
     def check_range_harvest(self, change):
