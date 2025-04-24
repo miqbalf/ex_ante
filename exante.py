@@ -828,8 +828,8 @@ class ExAnteCalc(AllometryLibrary):
                     filtered_df, grouping_max_year
                 )
                 
-                print(f"{zone} & is_replanting ({is_replanting}) widgets:")
-                display(widget_zone)
+                # print(f"{zone} & is_replanting ({is_replanting}) widgets:")
+                # display(widget_zone)
                 return widget_zone
             
             # create a cleaned_list_species based on csu_seedling to get the info of is_replanting, zone, species_list that has >0 num_trees
@@ -839,7 +839,7 @@ class ExAnteCalc(AllometryLibrary):
                             var_name=self.name_column_species_allo,
                             value_name='num_trees')
 
-            cleaned_list_species = df_melted[df_melted['num_trees']>0]
+            cleaned_list_species = df_melted[df_melted['num_trees']>0].copy()
             cleaned_list_species = cleaned_list_species.set_index(['is_replanting', 'zone'])
 
             # Sort the DataFrame by the 'is_replanting' index level in ascending order
@@ -861,8 +861,24 @@ class ExAnteCalc(AllometryLibrary):
                     self.list_widget_variable_name.append(variable_name)
                 else:
                     print(f"Combination {index_tuple} not found in cleaned_list_species.")
-                print("\n-----------------------------------------------------------------------------------------")
+                # print("\n-----------------------------------------------------------------------------------------")
 
+            for var_name in self.list_widget_variable_name:
+                widget_instance = getattr(self, var_name)
+                
+                if is_running_in_colab():
+                    from google.colab import output
+                    output.clear()
+                    
+                    # Display form (simplified for Colab)
+                    display(widgets.VBox([
+                        widgets.HTML(f"<h4>Forestry Scenario Form {var_name.replace('_', ' ')}</h4>"),
+                        widget_instance
+                    ]))
+                else:
+                    display(widget_instance)
+                print("\n-----------------------------------------------------------------------------------------")
+            
             # # Add a final submit button
             # self.final_submit_button = widgets.Button(
             #     description="Submit Scenario Data"

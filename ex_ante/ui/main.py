@@ -268,11 +268,9 @@ class Project_Setting_Species(widgets.VBox):
         self.year_harvesting = self.create_int_text_widget(
             "harvest_cycle_year:", self.grouping_max_year[self.species_name]
         )
-        self.mortality_percent = self.create_int_text_widget(
-            "mortality_rate_percent:", 20
-        )
-        self.natural_thinning = self.create_int_text_widget(
-            "natural_thinning_percent:", 5
+        self.mortality_percent = self.create_float_text_widget("mortality_rate_percent:", 20.0)
+        self.natural_thinning = self.create_float_text_widget(
+            "natural_thinning_percent:", 5.0
         )
         self.frequency_thinning = self.create_int_text_widget(
             "how many times manual thinning:", 0
@@ -308,6 +306,16 @@ class Project_Setting_Species(widgets.VBox):
     def create_int_text_widget(description, value):
         return widgets.IntText(
             description=description, style={"description_width": "initial"}, value=value
+        )
+    
+    @staticmethod
+    def create_float_text_widget(self, description, default):
+        return widgets.FloatText(
+            value=default,
+            description=description,
+            step=0.1,
+            style={'description_width': 'initial'},
+            layout=widgets.Layout(width='250px')
         )
 
     def check_range_harvest(self, change):
