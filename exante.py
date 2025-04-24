@@ -863,20 +863,19 @@ class ExAnteCalc(AllometryLibrary):
                     print(f"Combination {index_tuple} not found in cleaned_list_species.")
                 # print("\n-----------------------------------------------------------------------------------------")
 
+            if is_running_in_colab():
+                from google.colab import output
+                output.clear()
+            
             for var_name in self.list_widget_variable_name:
                 widget_instance = getattr(self, var_name)
                 
-                if is_running_in_colab():
-                    from google.colab import output
-                    output.clear()
-                    
-                    # Display form (simplified for Colab)
-                    display(widgets.VBox([
-                        widgets.HTML(f"<h4>Forestry Scenario Form {var_name.replace('_', ' ')}</h4>"),
-                        widget_instance
-                    ]))
-                else:
-                    display(widget_instance)
+                                   
+                # Display form (simplified for Colab)
+                display(widgets.VBox([
+                    widgets.HTML(f"<h4>Forestry Scenario Form {var_name.replace('_', ' ')}</h4>"),
+                    widget_instance
+                ]))
                 print("\n-----------------------------------------------------------------------------------------")
             
             # # Add a final submit button
