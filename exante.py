@@ -499,6 +499,14 @@ class ExAnteCalc(AllometryLibrary):
             )
             print(f"Gap harvest enabled: {gap_harvest}")
 
+            thinning_stop = input("Apply the thinning stop algorithm? (Default: no/False/0)")
+            thinning_stop = (
+                True if gap_input in ["true", "yes", "1", "y"] else 
+                False if gap_input in ["false", "no", "0", "n"] or not gap_input.strip() else 
+                (print("Invalid input, using default (no)"), False)[1]
+            )
+            print(f"thinning_stop enabled: {thinning_stop}")
+
             # Harvesting Max Percent (default: 59.9)
             harvest_input = input("Max harvest percentage? (Default: 59.9%) [Enter number only]: ")
             harvesting_max_percent = float(harvest_input) if harvest_input.strip() else 59.9
@@ -520,6 +528,7 @@ class ExAnteCalc(AllometryLibrary):
                 "csv_plot_summary_zone": csv_plot_summary_zone,
                 "duration_project": duration_project,
                 "gap_harvest": gap_harvest,
+                "thinning_stop":thinning_stop,
                 "harvesting_max_percent": harvesting_max_percent,
                 "planting_year": planting_year,
                 "root_folder": root_folder,
@@ -868,7 +877,7 @@ class ExAnteCalc(AllometryLibrary):
             for var_name in self.list_widget_variable_name:
                 widget_instance = getattr(self, var_name)
                 forms_ui.append(widgets.VBox([
-                    widgets.HTML(f"<h4>Forestry Scenario Form - Replanting {var_name.replace('widget_', '').replace('_zone','').replace('_',' ')}</h4>"),
+                    widgets.HTML(f"<h4>Forestry Scenario Form - Replanting {var_name.replace('widget_', '').replace('_zone','').replace('_',' ')} zone</h4>"),
                     widget_instance
                 ]))
                 forms_ui.append(widgets.HTML("<hr>"))
@@ -989,7 +998,7 @@ class ExAnteCalc(AllometryLibrary):
             max_density_df = pd.read_csv(
                 os.path.join(
                     os.path.dirname(__file__),
-                    "ex_ante/00_input/max_density_trees_ha.csv",
+                    "max_density_trees_ha.csv",
                 )
             )  # hardcoded
 
