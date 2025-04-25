@@ -414,47 +414,49 @@ class CSUEntryForm:
         Create widgets dynamically based on DataFrame column names and data types.
         Set default values where specified.
         """
-        form_rows = []  # list of form input rows
+        layout_style = widgets.Layout(width='600px', margin='5px 0 5px 10px')
+        style = {'description_width': '250px'}
+
+        self.widgets_dict = {}
 
         for col_name, col_dtype in self.csu_seedling.dtypes.items():
-            label = widgets.Label(
-                value=col_name,
-                layout=widgets.Layout(width='350px', overflow='visible')
-            )
-
-            # Create input widgets depending on field
-            if col_dtype == 'int64' and col_name != "year_start":
-                input_widget = widgets.IntText(value=1 if col_name == "Plot_ID" else 1000)
+            if col_name == "Plot_ID":
+                self.widgets_dict[col_name] = widgets.IntText(
+                    value=1, description=col_name, layout=layout_style, style=style
+                )
             elif col_name == "Plot_Name":
-                input_widget = widgets.Text(value="general")
+                self.widgets_dict[col_name] = widgets.Text(
+                    value="general", description=col_name, layout=layout_style, style=style
+                )
             elif col_name == "zone":
-                input_widget = widgets.Dropdown(
+                self.widgets_dict[col_name] = widgets.Dropdown(
                     options=["production_zone", "protected_zone"],
-                    value="protected_zone"
+                    value="protected_zone", description=col_name, layout=layout_style, style=style
                 )
             elif col_name == "area_ha":
-                input_widget = widgets.FloatText(value=50.0)
+                self.widgets_dict[col_name] = widgets.FloatText(
+                    value=50.0, description=col_name, layout=layout_style, style=style
+                )
             elif col_name == "is_replanting":
-                input_widget = widgets.Checkbox(value=False)
+                self.widgets_dict[col_name] = widgets.Checkbox(
+                    value=False, description=col_name, layout=layout_style, style=style
+                )
             elif col_name == "year_start":
-                input_widget = widgets.IntText(value=1)
+                self.widgets_dict[col_name] = widgets.IntText(
+                    value=1, description=col_name, layout=layout_style, style=style
+                )
             elif col_name == "mu":
-                input_widget = widgets.Text(value="MU_1_1")
+                self.widgets_dict[col_name] = widgets.Text(
+                    value="MU_1_1", description=col_name, layout=layout_style, style=style
+                )
             else:
-                input_widget = widgets.IntText(value=1000)
+                # Default for species columns
+                self.widgets_dict[col_name] = widgets.IntText(
+                    value=1000, description=col_name, layout=layout_style, style=style
+                )
 
-            # Store in your dictionary
-            self.widgets_dict[col_name] = input_widget
-
-            # Uniform input styling
-            input_widget.layout = widgets.Layout(width='200px')
-
-            # Create a single row (label + input side by side)
-            row = widgets.HBox([label, input_widget], layout=widgets.Layout(margin='2px 0'))
-            form_rows.append(row)
-
-        # Display full form
-        self.form = widgets.VBox(form_rows)
+        # Build the form
+        self.form = widgets.VBox([widgets.HTML("<b>Data Entry Form</b>")] + list(self.widgets_dict.values()))
 
     def add_row_to_df(self, button):
         """
