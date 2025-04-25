@@ -414,43 +414,43 @@ class CSUEntryForm:
         Create widgets dynamically based on DataFrame column names and data types.
         Set default values where specified.
         """
-        layout_style = widgets.Layout(width='300px', margin='5px 0 5px 10px', description_width='400px')
+        layout_style = widgets.Layout(width='300px', margin='5px 0 5px 10px')
         for col_name, col_dtype in self.csu_seedling.dtypes.items():
             if col_name == "Plot_ID":
                 self.widgets_dict[col_name] = widgets.IntText(
-                    value=1, description=col_name,layout=layout_style
+                    value=1, description=col_name,layout=layout_style, style={'description_width': '400px'}
                 )  # Default Plot_ID = 1
             elif col_name == "Plot_Name":
                 self.widgets_dict[col_name] = widgets.Text(
-                    value="general", description=col_name, layout=layout_style
+                    value="general", description=col_name, layout=layout_style, style={'description_width': '400px'}
                 )  # Default Plot_Name = 'general'
             elif col_name == "zone":
                 self.widgets_dict[col_name] = widgets.Dropdown(
                     options=["production_zone", "protected_zone"],
                     value="protected_zone",
-                    description=col_name, layout=layout_style
+                    description=col_name, layout=layout_style, style={'description_width': '400px'}
                 )  # Default zone
             elif col_name == "area_ha":
                 self.widgets_dict[col_name] = widgets.FloatText(
-                    value=50.0, description=col_name
+                    value=50.0, description=col_name, style={'description_width': '400px'},layout=layout_style,
                 )  # Default area_ha = 50
 
             elif col_name == "is_replanting":
                 self.widgets_dict[col_name] = widgets.Checkbox(
-                    value=False, description=col_name, layout=layout_style
+                    value=False, description=col_name, layout=layout_style, style={'description_width': '400px'}
                 )  
             elif col_name == "year_start":
                 self.widgets_dict[col_name] = widgets.IntText(
-                    value=1, description=col_name, layout=layout_style
+                    value=1, description=col_name, layout=layout_style, style={'description_width': '400px'}
                 )  # Default start_year = 1
             elif col_name == "mu":
                 self.widgets_dict[col_name] = widgets.Text(
-                    value="MU_1_1", description=col_name, layout=layout_style
+                    value="MU_1_1", description=col_name, layout=layout_style, style={'description_width': '400px'}
                 )  # Default mu = 1
             else:
                 # For other species columns, default to 1000
                 self.widgets_dict[col_name] = widgets.IntText(
-                    value=1000, description=col_name, layout=layout_style
+                    value=1000, description=col_name, layout=layout_style, style={'description_width': '400px'}
                 )
 
     def add_row_to_df(self, button):
