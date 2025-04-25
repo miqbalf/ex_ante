@@ -414,7 +414,7 @@ class CSUEntryForm:
         Create widgets dynamically based on DataFrame column names and data types.
         Set default values where specified.
         """
-        layout_style = widgets.Layout(width='400px', margin='5px 0 5px 10px')
+        layout_style = widgets.Layout(width='300px', margin='5px 0 5px 10px', description_width='400px')
         for col_name, col_dtype in self.csu_seedling.dtypes.items():
             if col_name == "Plot_ID":
                 self.widgets_dict[col_name] = widgets.IntText(
