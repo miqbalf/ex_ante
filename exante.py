@@ -855,6 +855,8 @@ class ExAnteCalc(AllometryLibrary):
             cleaned_list_species = cleaned_list_species.sort_index(level='is_replanting', ascending=True)
             cleaned_list_species[self.name_column_species_allo] = cleaned_list_species[self.name_column_species_allo].str.replace('_num_trees', '')
 
+            print(cleaned_list_species.index.unique())
+
             # Iterate through the unique combinations of the index
             for index_tuple in cleaned_list_species.index.unique():
                 is_replanting, zone = index_tuple
