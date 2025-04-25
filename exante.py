@@ -848,12 +848,20 @@ class ExAnteCalc(AllometryLibrary):
                             var_name=self.name_column_species_allo,
                             value_name='num_trees')
 
-            cleaned_list_species = df_melted[df_melted['num_trees']>0].copy()
+            # Filter rows where num_trees > 0
+            cleaned_list_species = df_melted[df_melted['num_trees'] > 0].copy()
+
+            # Remove '_num_trees' suffix from species name column
+            cleaned_list_species[self.name_column_species_allo] = cleaned_list_species[self.name_column_species_allo].str.replace('_num_trees', '', regex=False)
+
+            # Set index to ('is_replanting', 'zone') as requested
             cleaned_list_species = cleaned_list_species.set_index(['is_replanting', 'zone'])
 
-            # Sort the DataFrame by the 'is_replanting' index level in ascending order
+            # Sort by 'is_replanting' for ordered output
             cleaned_list_species = cleaned_list_species.sort_index(level='is_replanting', ascending=True)
-            cleaned_list_species[self.name_column_species_allo] = cleaned_list_species[self.name_column_species_allo].str.replace('_num_trees', '')
+
+            # Drop duplicates based on the species name column while keeping index context
+            cleaned_list_species = cleaned_list_species[~cleaned_list_species.duplicated(subset=[self.name_column_species_allo])]
 
             print(cleaned_list_species.index.unique())
 
