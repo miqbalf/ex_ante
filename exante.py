@@ -860,8 +860,8 @@ class ExAnteCalc(AllometryLibrary):
             # Sort by 'is_replanting' for ordered output
             cleaned_list_species = cleaned_list_species.sort_index(level='is_replanting', ascending=True)
 
-            # Drop duplicates based on the species name column while keeping index context
-            cleaned_list_species = cleaned_list_species[~cleaned_list_species.duplicated(subset=[self.name_column_species_allo])]
+            # Drop num_trees
+            cleaned_list_species = cleaned_list_species.drop(columns=('num_trees'))
 
             print(cleaned_list_species.index.unique())
 
@@ -934,7 +934,7 @@ class ExAnteCalc(AllometryLibrary):
 
     def create_species_widgets(self, df_zone, grouping_max_year):
         widgets_list = []
-        for species in df_zone[self.name_column_species_allo].to_list():
+        for species in list(set(df_zone[self.name_column_species_allo].to_list())): # take the unique info
             widget = Project_Setting_Species(species, grouping_max_year)
             widget.add_class("box_style")
             widgets_list.append(widget)
