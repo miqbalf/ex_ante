@@ -414,20 +414,21 @@ class CSUEntryForm:
         Create widgets dynamically based on DataFrame column names and data types.
         Set default values where specified.
         """
+        layout_style = widgets.Layout(width='400px', margin='5px 0 5px 10px')
         for col_name, col_dtype in self.csu_seedling.dtypes.items():
             if col_name == "Plot_ID":
                 self.widgets_dict[col_name] = widgets.IntText(
-                    value=1, description=col_name
+                    value=1, description=col_name,layout=layout_style
                 )  # Default Plot_ID = 1
             elif col_name == "Plot_Name":
                 self.widgets_dict[col_name] = widgets.Text(
-                    value="general", description=col_name
+                    value="general", description=col_name, layout=layout_style
                 )  # Default Plot_Name = 'general'
             elif col_name == "zone":
                 self.widgets_dict[col_name] = widgets.Dropdown(
                     options=["production_zone", "protected_zone"],
                     value="protected_zone",
-                    description=col_name,
+                    description=col_name, layout=layout_style
                 )  # Default zone
             elif col_name == "area_ha":
                 self.widgets_dict[col_name] = widgets.FloatText(
@@ -436,20 +437,20 @@ class CSUEntryForm:
 
             elif col_name == "is_replanting":
                 self.widgets_dict[col_name] = widgets.Checkbox(
-                    value=False, description=col_name
+                    value=False, description=col_name, layout=layout_style
                 )  
             elif col_name == "year_start":
                 self.widgets_dict[col_name] = widgets.IntText(
-                    value=1, description=col_name
+                    value=1, description=col_name, layout=layout_style
                 )  # Default start_year = 1
             elif col_name == "mu":
                 self.widgets_dict[col_name] = widgets.FloatText(
-                    value=1.0, description=col_name
+                    value="MU_1_1", description=col_name, layout=layout_style
                 )  # Default mu = 1
             else:
                 # For other species columns, default to 1000
                 self.widgets_dict[col_name] = widgets.IntText(
-                    value=1000, description=col_name
+                    value=1000, description=col_name, layout=layout_style
                 )
 
     def add_row_to_df(self, button):
@@ -510,7 +511,7 @@ class CSUEntryForm:
             elif col_name == "year_start":
                 widget.value = 1
             elif col_name == "mu":
-                widget.value = 1.0
+                widget.value = "MU_1_1"
             else:
                 widget.value = 1000  # Reset species count columns to 1000
 
