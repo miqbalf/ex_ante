@@ -414,44 +414,46 @@ class CSUEntryForm:
         Create widgets dynamically based on DataFrame column names and data types.
         Set default values where specified.
         """
-        layout_style = widgets.Layout(width='300px', margin='5px 0 5px 10px')
+        form_rows = []  # We'll collect each row here
         for col_name, col_dtype in self.csu_seedling.dtypes.items():
-            if col_name == "Plot_ID":
-                self.widgets_dict[col_name] = widgets.IntText(
-                    value=1, description=col_name,layout=layout_style, style={'description_width': '400px'}
-                )  # Default Plot_ID = 1
+            # Create a fixed-width label instead of using the widget `description`
+            label = widgets.Label(
+                value=col_name,
+                layout=widgets.Layout(width='300px', overflow='visible')  # Enough room for species names
+            )
+            
+            # Choose the right widget for input
+            if col_dtype == 'int64' and col_name != "year_start":
+                input_widget = widgets.IntText(value=1 if col_name == "Plot_ID" else 1000)
             elif col_name == "Plot_Name":
-                self.widgets_dict[col_name] = widgets.Text(
-                    value="general", description=col_name, layout=layout_style, style={'description_width': '400px'}
-                )  # Default Plot_Name = 'general'
+                input_widget = widgets.Text(value="general")
             elif col_name == "zone":
-                self.widgets_dict[col_name] = widgets.Dropdown(
+                input_widget = widgets.Dropdown(
                     options=["production_zone", "protected_zone"],
-                    value="protected_zone",
-                    description=col_name, layout=layout_style, style={'description_width': '400px'}
-                )  # Default zone
-            elif col_name == "area_ha":
-                self.widgets_dict[col_name] = widgets.FloatText(
-                    value=50.0, description=col_name, style={'description_width': '400px'},layout=layout_style,
-                )  # Default area_ha = 50
-
-            elif col_name == "is_replanting":
-                self.widgets_dict[col_name] = widgets.Checkbox(
-                    value=False, description=col_name, layout=layout_style, style={'description_width': '400px'}
-                )  
-            elif col_name == "year_start":
-                self.widgets_dict[col_name] = widgets.IntText(
-                    value=1, description=col_name, layout=layout_style, style={'description_width': '400px'}
-                )  # Default start_year = 1
-            elif col_name == "mu":
-                self.widgets_dict[col_name] = widgets.Text(
-                    value="MU_1_1", description=col_name, layout=layout_style, style={'description_width': '400px'}
-                )  # Default mu = 1
-            else:
-                # For other species columns, default to 1000
-                self.widgets_dict[col_name] = widgets.IntText(
-                    value=1000, description=col_name, layout=layout_style, style={'description_width': '400px'}
+                    value="protected_zone"
                 )
+            elif col_name == "area_ha":
+                input_widget = widgets.FloatText(value=50.0)
+            elif col_name == "is_replanting":
+                input_widget = widgets.Checkbox(value=False)
+            elif col_name == "year_start":
+                input_widget = widgets.IntText(value=1)
+            elif col_name == "mu":
+                input_widget = widgets.Text(value="MU_1_1")
+            else:
+                input_widget = widgets.IntText(value=1000)
+
+            # Keep reference
+            self.widgets_dict[col_name] = input_widget
+
+            # Style inputs uniformly
+            input_widget.layout = widgets.Layout(width='200px', margin='0 0 0 10px')
+
+            # Assemble row with label and input
+            form_rows.append(widgets.HBox([label, input_widget]))
+
+        # Display all rows in a vertical column
+        self.form = widgets.VBox(form_rows)
 
     def add_row_to_df(self, button):
         """
