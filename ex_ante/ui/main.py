@@ -417,8 +417,6 @@ class CSUEntryForm:
         layout_style = widgets.Layout(width='600px', margin='5px 0 5px 10px')
         style = {'description_width': '250px'}
 
-        self.widgets_dict = {}
-
         for col_name, col_dtype in self.csu_seedling.dtypes.items():
             if col_name == "Plot_ID":
                 self.widgets_dict[col_name] = widgets.IntText(
@@ -454,9 +452,6 @@ class CSUEntryForm:
                 self.widgets_dict[col_name] = widgets.IntText(
                     value=1000, description=col_name, layout=layout_style, style=style
                 )
-
-        # Build the form
-        self.form = widgets.VBox([widgets.HTML("<b>Data Entry Form</b>")] + list(self.widgets_dict.values()))
 
     def add_row_to_df(self, button):
         """
