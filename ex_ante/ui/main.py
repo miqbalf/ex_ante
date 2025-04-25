@@ -414,15 +414,15 @@ class CSUEntryForm:
         Create widgets dynamically based on DataFrame column names and data types.
         Set default values where specified.
         """
-        form_rows = []  # We'll collect each row here
+        form_rows = []  # list of form input rows
+
         for col_name, col_dtype in self.csu_seedling.dtypes.items():
-            # Create a fixed-width label instead of using the widget `description`
             label = widgets.Label(
                 value=col_name,
-                layout=widgets.Layout(width='300px', overflow='visible')  # Enough room for species names
+                layout=widgets.Layout(width='350px', overflow='visible')
             )
-            
-            # Choose the right widget for input
+
+            # Create input widgets depending on field
             if col_dtype == 'int64' and col_name != "year_start":
                 input_widget = widgets.IntText(value=1 if col_name == "Plot_ID" else 1000)
             elif col_name == "Plot_Name":
@@ -443,16 +443,17 @@ class CSUEntryForm:
             else:
                 input_widget = widgets.IntText(value=1000)
 
-            # Keep reference
+            # Store in your dictionary
             self.widgets_dict[col_name] = input_widget
 
-            # Style inputs uniformly
-            input_widget.layout = widgets.Layout(width='200px', margin='0 0 0 10px')
+            # Uniform input styling
+            input_widget.layout = widgets.Layout(width='200px')
 
-            # Assemble row with label and input
-            form_rows.append(widgets.HBox([label, input_widget]))
+            # Create a single row (label + input side by side)
+            row = widgets.HBox([label, input_widget], layout=widgets.Layout(margin='2px 0'))
+            form_rows.append(row)
 
-        # Display all rows in a vertical column
+        # Display full form
         self.form = widgets.VBox(form_rows)
 
     def add_row_to_df(self, button):
