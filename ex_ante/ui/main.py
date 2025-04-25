@@ -444,7 +444,7 @@ class CSUEntryForm:
                     value=1, description=col_name, layout=layout_style
                 )  # Default start_year = 1
             elif col_name == "mu":
-                self.widgets_dict[col_name] = widgets.FloatText(
+                self.widgets_dict[col_name] = widgets.Text(
                     value="MU_1_1", description=col_name, layout=layout_style
                 )  # Default mu = 1
             else:
