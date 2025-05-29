@@ -345,6 +345,7 @@ def calculate_and_merge_proportions(plot_carbon_df, scenario_dict, simulation_fu
 
     for _, row in unique_plot_species_rows.iterrows():
         try:
+            print('unique_plot_species_rows: ', unique_plot_species_rows)
             # Construct plot_id_tuple
             plot_id_tuple = tuple(row[col] for col in id_cols_for_tuple)
             species = row[species_col]
