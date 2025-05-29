@@ -199,6 +199,8 @@ def simulate_all_proportions_for_species(
                 year_key = f"thinning_cycle{i+1}_year"
                 percent_key = f"thinning_cycle{i+1}_percent"
 
+                print('species_conf: ', species_conf)
+
                 thin_year_val = species_conf.get(year_key)
                 thin_percent_val = species_conf.get(percent_key)
 
