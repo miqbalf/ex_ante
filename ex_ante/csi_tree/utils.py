@@ -194,12 +194,14 @@ def simulate_all_proportions_for_species(
         manual_thinnings = {}
         if frequency > 0:
             for i in range(frequency):
-                # !!! ASSUMPTION: Keys DO NOT have trailing colon (:) !!!
-                # If they DO, change these keys back e.g. f"thinning_cycle{i+1}_year:"
-                year_key = f"thinning_cycle{i+1}_year"
-                percent_key = f"thinning_cycle{i+1}_percent"
+                #  :( unfortunately for manual thinning description keys (cycle year and percent), i put colon : in the end, this was because the UI generated the : previously and its everywhere now
+                # its every where meaning that the old model and current input has been using : for manual thinning, maybe for django, we need to change it or just simply changes the output systematically as an api
+                #  f"thinning_cycle{i+1}_year:" 
+                # TODO NEED TO FIX THIS LATER!!!!
+                year_key = f"thinning_cycle{i+1}_year:"
+                percent_key = f"thinning_cycle{i+1}_percent:"
 
-                print('species_conf: ', species_conf)
+                # print('species_conf: ', species_conf)
 
                 thin_year_val = species_conf.get(year_key)
                 thin_percent_val = species_conf.get(percent_key)
@@ -345,7 +347,7 @@ def calculate_and_merge_proportions(plot_carbon_df, scenario_dict, simulation_fu
 
     for _, row in unique_plot_species_rows.iterrows():
         try:
-            print('unique_plot_species_rows: ', unique_plot_species_rows)
+            # print('unique_plot_species_rows: ', unique_plot_species_rows)
             # Construct plot_id_tuple
             plot_id_tuple = tuple(row[col] for col in id_cols_for_tuple)
             species = row[species_col]
