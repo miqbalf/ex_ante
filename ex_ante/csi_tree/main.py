@@ -290,12 +290,15 @@ class CSIExante:
                 self.dict_plot_scenario,  # Pass the config dict
                 simulate_all_proportions_for_species,  # Pass the correct simulation function
             )
+            
 
         else:  # try to maintain the legacy version without thinning stop
             plot_carbon["proportion_per_trees"] = plot_carbon.apply(
                 lambda row: calculate_proportion(row, self.dict_plot_scenario), axis=1
             )
-            plot_carbon = plot_carbon.dropna(subset=["proportion_per_trees"])
+        
+        # ENSURE THE NA PROPORTION PER TREES IS REMOVED BECAUSE THE CASE OF TWO ZONE THE SAME SPECIES CASE!
+        plot_carbon = plot_carbon.dropna(subset=["proportion_per_trees"])
 
         # calculating biomass (ton) in actual proportion after thinning, and natural thinning
         plot_carbon["tCo2e_per_trees_proportion"] = (
