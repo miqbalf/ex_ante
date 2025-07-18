@@ -111,6 +111,9 @@ def plot_co2_species(input_gcs: pd.DataFrame, location_save=""):
         aggfunc="sum",
     ).fillna(0)
 
+    list_year = list(input_gcs['measurement_year'].unique())
+    num_year = len(list_year)
+
     # Summarize data based on year
     yearly_summary = (
         input_gcs.groupby("measurement_year")["co2_tree_captured_tonnes"]
@@ -149,7 +152,7 @@ def plot_co2_species(input_gcs: pd.DataFrame, location_save=""):
 
     ax.set_xlabel("Year")
     ax.set_ylabel("CO2 Captured (Tonnes)")
-    ax.set_title("CO2 Captured by Trees Over 30 Years")
+    ax.set_title(f"CO2 Captured by Trees Over {num_year} Years")
     ax.legend(title="Species")
 
     # Adjusting legend properties
