@@ -111,8 +111,9 @@ def plot_co2_species(input_gcs: pd.DataFrame, location_save=""):
         aggfunc="sum",
     ).fillna(0)
 
-    pivot_df['total'] = pivot_df.sum(axis=1)
-    max_total = pivot_df['total'].max()
+    for_max = pivot_df.copy()
+    for_max['total'] = for_max.sum(axis=1)
+    max_total = for_max['total'].max()
 
     list_year = list(input_gcs['measurement_year'].unique())
     num_year = len(list_year)
@@ -156,7 +157,7 @@ def plot_co2_species(input_gcs: pd.DataFrame, location_save=""):
     x_position = ax.get_xticks()[0]  # Get the x-coordinate for the first bar
     ax.text(
         x_position,
-        ((long_term_average) - max_total)/num_year,
+        (long_term_average) - ((max_total-long_term_average)/num_year),
         f"{long_term_average:.2f}",
         color="orange",
         fontsize=10,
@@ -165,7 +166,7 @@ def plot_co2_species(input_gcs: pd.DataFrame, location_save=""):
 
     ax.text(
         x_position,
-        ((long_term_average*0.8) - (max_total*0.8))/num_year,
+        (long_term_average*0.8) - ((max_total*0.8)-(long_term_average*0.8))/num_year,
         f"{long_term_average:.2f}",
         color="green",
         fontsize=10,
