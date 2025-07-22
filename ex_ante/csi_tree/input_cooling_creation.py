@@ -124,6 +124,7 @@ def plot_co2_species(input_gcs: pd.DataFrame, location_save=""):
     # Calculate the long-term average of the yearly summed CO2 captured
     long_term_average = yearly_summary["co2_tree_captured_tonnes"].mean()
     print("LTA capture :", long_term_average)
+    print('LTA capture - buffer 20% : ', long_term_average*0.8)
 
     # Plot the stacked bar chart
     fig, ax = plt.subplots(figsize=(12, 6))  # Create a new figure and axis
@@ -139,13 +140,31 @@ def plot_co2_species(input_gcs: pd.DataFrame, location_save=""):
         label="Long-term Average captured CO2",
     )
 
+    # Plot the long-term average line with buffer
+    ax.axhline(
+        y=long_term_average*0.8,
+        color="green",
+        linestyle="-",
+        linewidth=2,
+        label="Long-term Average captured CO2 - buffer 20%",
+    )
+
     # Add label over the long-term average line
     x_position = ax.get_xticks()[0]  # Get the x-coordinate for the first bar
     ax.text(
         x_position,
-        long_term_average - 350,
+        ((long_term_average) - pivot_df[pivot_df.columns[-1]].max())/num_year,
         f"{long_term_average:.2f}",
         color="orange",
+        fontsize=10,
+        fontweight="bold",
+    )
+
+    ax.text(
+        x_position,
+        ((long_term_average*0.8) - pivot_df[pivot_df.columns[-1]].max())/num_year,
+        f"{long_term_average:.2f}",
+        color="green",
         fontsize=10,
         fontweight="bold",
     )
