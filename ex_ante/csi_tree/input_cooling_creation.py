@@ -152,12 +152,12 @@ def plot_co2_species(input_gcs: pd.DataFrame, location_save=""):
         linewidth=2,
         label="Long-term Average captured CO2 - buffer 20%",
     )
-
+    
     # Add label over the long-term average line
     x_position = ax.get_xticks()[0]  # Get the x-coordinate for the first bar
     ax.text(
         x_position,
-        (long_term_average) - ((max_total-long_term_average)/num_year),
+        (long_term_average) - ((max_total)/num_year),
         f"{long_term_average:.2f}",
         color="orange",
         fontsize=10,
@@ -166,8 +166,8 @@ def plot_co2_species(input_gcs: pd.DataFrame, location_save=""):
 
     ax.text(
         x_position,
-        (long_term_average*0.8) - ((max_total*0.8)-(long_term_average*0.8))/num_year,
-        f"{long_term_average:.2f}",
+        (long_term_average*0.8) - ((max_total*0.8))/num_year,
+        f"{long_term_average*0.8:.2f}",
         color="green",
         fontsize=10,
         fontweight="bold",
@@ -179,11 +179,17 @@ def plot_co2_species(input_gcs: pd.DataFrame, location_save=""):
     ax.legend(title="Species")
 
     # Adjusting legend properties
-    ax.legend(loc="upper left", fontsize="small", markerscale=0.5)
+    ax.legend(
+        loc="upper left",
+        bbox_to_anchor=(1.02, 1), # Position legend outside the plot area
+        fontsize="small"
+    )
+
 
     if location_save != "":
         plt.savefig(
             location_save, dpi=300, bbox_inches="tight"
         )  # Save before plt.show()
+
 
     plt.show()
