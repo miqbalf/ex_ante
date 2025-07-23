@@ -879,7 +879,7 @@ class ExPostAnalysis:
 
                 df_species_summary = joined_df[
                     [
-                        "species_expost",
+                        "species",
                         "Nr. Trees Ex-Ante",
                         "Nr. Trees Ex-Post",
                         "Large_tree num",
