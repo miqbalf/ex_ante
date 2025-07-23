@@ -1093,7 +1093,7 @@ class ExPostAnalysis:
         return df_summary
 
     def stat_all(
-        self, large_tree=True, scale="mu", filter_species=False, species_name=""
+        self, large_tree=True, scale="mu", filter_species=False, species_list=""
     ):
         # Validate the 'scale' argument
         # if scale not in ['mu', 'csu']:
@@ -1111,8 +1111,7 @@ class ExPostAnalysis:
 
         if filter_species:
             self.df_meas_plot_filtered = self.df_meas_plot_filtered[
-                self.df_meas_plot_filtered["check_result_data_species_check_manual"]
-                == species_name
+                self.df_meas_plot_filtered["check_result_data_species_check_manual"].isin(species_list)
             ]
 
         if large_tree:
@@ -1247,18 +1246,15 @@ class ExPostAnalysis:
         df_meas_plot_species_list = self.df_meas_plot[
             "check_result_data_species_check_manual"
         ].unique()
-        list_df_pivot = []
-        for species in df_meas_plot_species_list:
-            stat_pivot = self.stat_all(
+
+        stat_pivot = self.stat_all(
                 large_tree=large_tree,
                 scale=scale,
                 filter_species=True,
-                species_name=species,
-            )
-            stat_pivot.loc[stat_pivot.index[-1], "managementUnit"] = f"{species}_stat"
-            list_df_pivot.append(stat_pivot)
-
-        return pd.concat(list_df_pivot)
+                species_list=df_meas_plot_species_list,
+        )
+            
+        return stat_pivot
 
     def analyze_growth(
         self, name_column_species_model="Tree Species(+origin of allom. formula)"
