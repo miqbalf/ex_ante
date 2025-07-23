@@ -1526,9 +1526,9 @@ class ExPostAnalysis:
 
         # mortality rate here define as (dead_Tree + no_tree)/ all trees
         pivot_plot_mortality["mortality_rate"] = (
-            pivot_plot_mortality["num_trees_dead_tree"]
-            + pivot_plot_mortality["num_trees_no_tree"]
-        ) / pivot_plot_mortality["num_trees_All"]
+            pivot_plot_mortality.get("num_trees_dead_tree", 0)
+            + pivot_plot_mortality.get("num_trees_no_tree", 0)
+        ) / pivot_plot_mortality.get("num_trees_All", np.nan)
 
         return pivot_plot_mortality
 
