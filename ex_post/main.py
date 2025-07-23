@@ -443,6 +443,7 @@ class ExPostAnalysis:
                     "Plot_ID_expost",
                     "check_result_data_species_check_manual",
                     "is_replanting",
+                    'year_start'
                 ]
             )["id"]
             .count()
@@ -517,6 +518,7 @@ class ExPostAnalysis:
                         "Plot_ID_expost",
                         "check_result_data_species_check_manual",
                         "is_replanting",
+                        'year_start'
                     ],
                     columns=["measurement_type"],
                     values=["id"],
@@ -541,6 +543,7 @@ class ExPostAnalysis:
                         "Plot_ID_expost",
                         "check_result_data_species_check_manual",
                         "is_replanting",
+                        'year_start'
                     ],
                     how="left",
                 )
@@ -558,6 +561,7 @@ class ExPostAnalysis:
                         "Plot_ID_expost",
                         "check_result_data_species_check_manual",
                         "is_replanting",
+                        'year_start'
                     ]
                 )["co2_tree_captured_tonnes"]
                 .sum()
@@ -570,6 +574,7 @@ class ExPostAnalysis:
                     "Plot_ID_expost",
                     "check_result_data_species_check_manual",
                     "is_replanting",
+                    'year_start'
                 ],
             )
             expost_validated_count = expost_validated_count.rename(
@@ -615,6 +620,7 @@ class ExPostAnalysis:
         joined_pivot_num_trees_all = joined_pivot_num_trees_all.set_index(
             [
                 "is_replanting",
+                'year_start',
                 "plotZone",
                 "managementUnit",
                 "Plot_ID_exante",
@@ -635,6 +641,7 @@ class ExPostAnalysis:
         joined_pivot_tco2e_all = joined_pivot_tco2e_all.set_index(
             [
                 "is_replanting",
+                'year_start',
                 "plotZone",
                 "managementUnit",
                 "Plot_ID_exante",
@@ -765,6 +772,7 @@ class ExPostAnalysis:
                 "Project Name",
                 "Year Measured",
                 "is_replanting",
+                'year_start',
                 self.field_joins["Plot_ID"],
             ]
             + list_plot_columns,
@@ -775,6 +783,7 @@ class ExPostAnalysis:
                 "Project Name",
                 "Year Measured",
                 "is_replanting",
+                'year_start',
                 self.field_joins["Plot_ID"],
             ]
             + list_plot_columns,
