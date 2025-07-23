@@ -2564,6 +2564,12 @@ class ExPostAnalysis:
         self.input_scenario_prev_path = old_scenario_exante_path
         old_scenario_exante_toedit = old_scenario_exante
 
+        if 'nonreplanting' in old_scenario_exante_toedit.keys():
+            old_scenario_exante_toedit = old_scenario_exante_toedit
+
+        else:
+            old_scenario_exante_toedit['non_replanting'] = old_scenario_exante_toedit
+
         # look at the number of species in old scenario vs current expost species
         # ensure all the species in the species selected updated
         # old_scenario_exante = expost.input_scenario_prev
@@ -2611,71 +2617,72 @@ class ExPostAnalysis:
 
         updated_scenario = {}
         if override_new_scenario == "":
-
-            for zone, species_scenario in old_scenario_exante_toedit.items():
-                print('zone :',zone)
-                for species, scenario in species_scenario.items():
-                    if (
-                        species
-                        in concat_df[concat_df["zone"] == zone]["Lat. Name"].to_list()
-                    ):
-                        print(species)
-                        # override scenario
-                        scenario["mortality_percent"] = (
-                            adding_prev_mortality_rate  # in default (0) We will reuse the existing expost number as year 1, no new mortality added
-                        )
-
-                        # Check if the zone exists in updated_scenario, if not create an empty dictionary
-                        if zone not in updated_scenario:
-                            updated_scenario[zone] = {}
-
-                        # Update the species scenario in the specific zone
-                        updated_scenario[zone][species] = scenario
-                # Add new species to the updated_scenario if any
-                print('new_species_to_be_added_zone: ', new_species_to_be_added_zone )
-                if new_species_to_be_added_zone != {}:
-                    for new_species in new_species_to_be_added_zone[zone]:
-                        if zone not in updated_scenario:
-                            updated_scenario[zone] = {}
-
-                        # Check if there is an existing species to copy the scenario from
-                        existing_species = next(
-                            iter(species_scenario)
-                        )  # Take the first species to copy its scenario
-                        copied_scenario = species_scenario[
-                            existing_species
-                        ].copy()  # Copy the scenario
-                        # Add the new species with the copied scenario
-                        updated_scenario[zone][new_species] = copied_scenario
-                        if zone == "protected_zone":
-                            updated_scenario[zone][new_species] = (
-                                old_scenario_exante_toedit.get(
-                                    "production_zone", {}
-                                ).get(new_species, copied_scenario)
+            for is_replanting, zone_scenario in old_scenario_exante_toedit.items():
+                for zone, species_scenario in zone_scenario.items():
+                    print('zone :',zone)
+                    for species, scenario in species_scenario.items():
+                        if (
+                            species
+                            in concat_df[concat_df["zone"] == zone]["Lat. Name"].to_list()
+                        ):
+                            print(species)
+                            # override scenario
+                            scenario["mortality_percent"] = (
+                                adding_prev_mortality_rate  # in default (0) We will reuse the existing expost number as year 1, no new mortality added
                             )
-                            updated_scenario[zone][new_species]["harvesting_year"] = (
-                                old_scenario_exante_toedit.get("production_zone", {})
-                                .get(new_species, {})
-                                .get("harvesting_year", 30)
-                            )  # protect_zone default is length of the duration of project
-                            updated_scenario[zone][new_species][
-                                "mortality_percent"
-                            ] = adding_prev_mortality_rate  # in default (0) this is basically used the same number as expost, no additional mortality rate
 
-                        elif zone == "production_zone":
-                            updated_scenario[zone][new_species] = (
-                                old_scenario_exante_toedit.get(
-                                    "protected_zone", {}
-                                ).get(new_species, copied_scenario)
-                            )
-                            updated_scenario[zone][new_species]["harvesting_year"] = (
-                                old_scenario_exante_toedit.get("protected_zone", {})
-                                .get(new_species, {})
-                                .get("harvesting_year", 10)
-                            )  # comeback with the new value harvesting year if species does not exist in both protected and production zone
-                            updated_scenario[zone][new_species][
-                                "mortality_percent"
-                            ] = adding_prev_mortality_rate  # in default (0) this is basically used the same number as expost, no additional mortality rate
+                            # Check if the zone exists in updated_scenario, if not create an empty dictionary
+                            if zone not in updated_scenario:
+                                updated_scenario[zone] = {}
+
+                            # Update the species scenario in the specific zone
+                            updated_scenario[zone][species] = scenario
+                    # Add new species to the updated_scenario if any
+                    print('new_species_to_be_added_zone: ', new_species_to_be_added_zone )
+                    if new_species_to_be_added_zone != {}:
+                        if zone in new_species_to_be_added_zone:
+                            for new_species in new_species_to_be_added_zone[zone]:
+                                if zone not in updated_scenario:
+                                    updated_scenario[zone] = {}
+
+                                # Check if there is an existing species to copy the scenario from
+                                existing_species = next(
+                                    iter(species_scenario)
+                                )  # Take the first species to copy its scenario
+                                copied_scenario = species_scenario[
+                                    existing_species
+                                ].copy()  # Copy the scenario
+                                # Add the new species with the copied scenario
+                                updated_scenario[zone][new_species] = copied_scenario
+                                if zone == "protected_zone":
+                                    updated_scenario[zone][new_species] = (
+                                        old_scenario_exante_toedit.get(
+                                            "production_zone", {}
+                                        ).get(new_species, copied_scenario)
+                                    )
+                                    updated_scenario[zone][new_species]["harvesting_year"] = (
+                                        old_scenario_exante_toedit.get("production_zone", {})
+                                        .get(new_species, {})
+                                        .get("harvesting_year", 30)
+                                    )  # protect_zone default is length of the duration of project
+                                    updated_scenario[zone][new_species][
+                                        "mortality_percent"
+                                    ] = adding_prev_mortality_rate  # in default (0) this is basically used the same number as expost, no additional mortality rate
+
+                                elif zone == "production_zone":
+                                    updated_scenario[zone][new_species] = (
+                                        old_scenario_exante_toedit.get(
+                                            "protected_zone", {}
+                                        ).get(new_species, copied_scenario)
+                                    )
+                                    updated_scenario[zone][new_species]["harvesting_year"] = (
+                                        old_scenario_exante_toedit.get("protected_zone", {})
+                                        .get(new_species, {})
+                                        .get("harvesting_year", 10)
+                                    )  # comeback with the new value harvesting year if species does not exist in both protected and production zone
+                                    updated_scenario[zone][new_species][
+                                        "mortality_percent"
+                                    ] = adding_prev_mortality_rate  # in default (0) this is basically used the same number as expost, no additional mortality rate
 
                 # now writing - updating to the json file updated_scenario
                 gdrive_location_scenario_rate = os.path.join(
