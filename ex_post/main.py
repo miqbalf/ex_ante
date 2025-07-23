@@ -1866,8 +1866,12 @@ class ExPostAnalysis:
         json_config_prev_relpath="",
         # this will setting and store the info to use as coredb and 30y
         download_csv=False,  # if we want to re-download the coredb google sheet to a csv as follows
+        using_rel_path = True,# accomodate the old model
         growth_csv_rel_path="ex_ante/00_input/growth_model_2024-08-13.csv",
         allometry_csv_rel_path="ex_ante/00_input/allometry_model_2024-08-13.csv",
+        json_config_abspath = '',
+        growth_csv_abs_path='',
+        allometry_csv_abs_path='',
         name_column_species_allo="Lat. Name",  # change if necessary the csv is changed
         name_column_species_growth="Tree Species(+origin of allom. formula)",  # use the csv growth, change if needed
         # reupdating growth and allometry for the expost forecast
@@ -1882,7 +1886,7 @@ class ExPostAnalysis:
         override_new_growth_model="",
         gap_harvest=False,
         harvesting_max_percent=59.9,
-        thinning_stop=True,
+        thinning_stop=False, # set to False, to accomodate the old model
         force_load_seedling_csv="",
         override_new_formula="",
         override_new_scenario="",
@@ -2222,11 +2226,18 @@ class ExPostAnalysis:
         module_path = os.path.dirname(exante.__file__)
         json_config_relpath = json_config_prev_relpath
         # json_config_relpath = '00_ex_ante_result/00_bll_pool_1_sold/03_t4t/t4t_main.json' # should not a hard-coded
-        json_config_abspath = os.path.join(module_path, json_config_relpath)
-        # growth_csv_abs_path = os.path.join(module_path, 'ex_ante/00_input/growth_model_2024-08-13.csv')
-        growth_csv_abs_path = os.path.join(module_path, growth_csv_rel_path)
-        # allometry_csv_abs_path = os.path.join(module_path,'ex_ante/00_input/allometry_model_2024-08-13.csv')
-        allometry_csv_abs_path = os.path.join(module_path, allometry_csv_rel_path)
+        if using_rel_path:
+            # accomodate the old model
+            json_config_abspath = os.path.join(module_path, json_config_relpath)
+            # growth_csv_abs_path = os.path.join(module_path, 'ex_ante/00_input/growth_model_2024-08-13.csv')
+            growth_csv_abs_path = os.path.join(module_path, growth_csv_rel_path)
+            # allometry_csv_abs_path = os.path.join(module_path,'ex_ante/00_input/allometry_model_2024-08-13.csv')
+            allometry_csv_abs_path = os.path.join(module_path, allometry_csv_rel_path)
+        else:
+            if json_config_abspath != '' and growth_csv_abs_path != '' and allometry_csv_abs_path != '':
+                print('json sucessfully conf added')
+            else:
+                raise ValueError('error with json setup')
 
         # class based implementation update
         ex_ante = ExAnteCalc(
