@@ -2613,7 +2613,7 @@ class ExPostAnalysis:
         if override_new_scenario == "":
 
             for zone, species_scenario in old_scenario_exante_toedit.items():
-                print(zone)
+                print('zone :',zone)
                 for species, scenario in species_scenario.items():
                     if (
                         species
