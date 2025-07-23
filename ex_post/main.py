@@ -1986,6 +1986,8 @@ class ExPostAnalysis:
                 "plantingStartDate",
                 "plantingEndDate",
                 "plotZone",
+                'is_replanting',
+                'year_start'
             ],
             columns="species",
             values="Nr. Trees Ex-Post",
@@ -2095,6 +2097,8 @@ class ExPostAnalysis:
                         "plantingStartDate",
                         "plantingEndDate",
                         "plotZone",
+                        'is_replanting',
+                'year_start',
                         "species",
                     ],
                     value_vars=field_names,
@@ -2157,7 +2161,8 @@ class ExPostAnalysis:
                     index=[
                         "Plot_ID",
                         "measurement_type",
-                        "year_start",
+                        'is_replanting',
+                            'year_start',
                         "Plot_Name",
                         "Plot_Area",
                         "managementUnit",
