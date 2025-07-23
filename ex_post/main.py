@@ -2632,6 +2632,7 @@ class ExPostAnalysis:
                         # Update the species scenario in the specific zone
                         updated_scenario[zone][species] = scenario
                 # Add new species to the updated_scenario if any
+                print('new_species_to_be_added_zone: ', new_species_to_be_added_zone )
                 if new_species_to_be_added_zone != {}:
                     for new_species in new_species_to_be_added_zone[zone]:
                         if zone not in updated_scenario:
