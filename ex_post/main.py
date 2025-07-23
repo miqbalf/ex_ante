@@ -1869,7 +1869,7 @@ class ExPostAnalysis:
         using_rel_path = True,# accomodate the old model
         growth_csv_rel_path="ex_ante/00_input/growth_model_2024-08-13.csv",
         allometry_csv_rel_path="ex_ante/00_input/allometry_model_2024-08-13.csv",
-        json_config_abspath = '',
+        json_config_prev_abspath = '',
         growth_csv_abs_path='',
         allometry_csv_abs_path='',
         name_column_species_allo="Lat. Name",  # change if necessary the csv is changed
@@ -2234,7 +2234,8 @@ class ExPostAnalysis:
             # allometry_csv_abs_path = os.path.join(module_path,'ex_ante/00_input/allometry_model_2024-08-13.csv')
             allometry_csv_abs_path = os.path.join(module_path, allometry_csv_rel_path)
         else:
-            if json_config_abspath != '' and growth_csv_abs_path != '' and allometry_csv_abs_path != '':
+            if json_config_prev_abspath != '' and growth_csv_abs_path != '' and allometry_csv_abs_path != '':
+                json_config_abspath = json_config_prev_abspath
                 print('json sucessfully conf added')
             else:
                 raise ValueError('error with json setup')
