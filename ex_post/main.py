@@ -1882,6 +1882,7 @@ class ExPostAnalysis:
         override_new_growth_model="",
         gap_harvest=False,
         harvesting_max_percent=59.9,
+        thinning_stop=True,
         force_load_seedling_csv="",
         override_new_formula="",
         override_new_scenario="",
@@ -2271,11 +2272,15 @@ class ExPostAnalysis:
         project_name = project_name_update
 
         # change the gap_harvest to be false as default for the updated expost
-        gap_harvest_prev = conf_general["gap_harvest"]
+        # gap_harvest_prev = conf_general["gap_harvest"]
         conf_general["gap_harvest"] = gap_harvest
 
-        harvesting_max_percent_prev = conf_general["harvesting_max_percent"]
+        # harvesting_max_percent_prev = conf_general["harvesting_max_percent"]
         conf_general["harvesting_max_percent"] = harvesting_max_percent
+
+        # change the thinning_stop to be True as default for the updated expost
+        # thinning_stop_prev = conf_general["thinning_stop"]
+        conf_general["thinning_stop"] = thinning_stop
 
         # trace the old folder ex-ante
         root_folder_prev = os.path.join(module_path, conf_general["root_folder"])
