@@ -22,15 +22,16 @@ from .utils import (
     species_reverse_coredb,
 )
 
-def process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_added_zone, adding_prev_mortality_rate=0):
+def process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_added_zone, adding_prev_mortality_rate=0, 
+            override_mortality_replanting = 40, update_species_name={}):
     """
     Processes and updates planting scenarios based on old data and new species.
 
     Key Logic:
     1.  Defaults to old scenario values for all parameters.
     2.  For new species, it first tries to find a template from an existing species
-        with a matching keyword (e.g., "Tectona").
-    3.  If no keyword match is found, it falls back to using the first available
+        with a key value species first (not to use other species, but the one setup in expost e.g change allometry (tree species code)).
+    3.  If no keyword match is found, it falls back to using the first available in between replanting vs non-replanting, and after that existing
         species in that zone as a template.
     4.  Allows for specific values like mortality rate to be overridden.
     """
@@ -67,17 +68,45 @@ def process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_a
 
                 for new_species in new_species_list:
                     base_scenario = None
-                    # Extract the first word of the new species name as the keyword
-                    new_species_keyword = new_species.split(' ')[0]
+                    # # Extract the first word of the new species name as the keyword
+                    # new_species_keyword = new_species.split(' ')[0]
 
-                    # A. Try to find a template in the current zone using the keyword
+                    # # A. Try to find a template in the current zone using the keyword
+                    # if zone in zone_scenario:
+                    #     for existing_species, existing_scenario in zone_scenario[zone].items():
+                    #         if existing_species.startswith(new_species_keyword):
+                    #             base_scenario = existing_scenario.copy()
+                    #             break  # Found the best template, stop searching
+
+
+                    # A. the same exact name
                     if zone in zone_scenario:
                         for existing_species, existing_scenario in zone_scenario[zone].items():
-                            if existing_species.startswith(new_species_keyword):
+                            if existing_species == new_species:
                                 base_scenario = existing_scenario.copy()
                                 break  # Found the best template, stop searching
 
-                    # B. If no keyword match, fall back to the first available species
+                    # A1 . Try template using the existing dictionary key, value (if there is changing code of species code) within the same species due to e.g allometry formula, or growth model changes
+                    if zone in zone_scenario:
+                        for existing_species, existing_scenario in zone_scenario[zone].items():
+                            if update_species_name.get(existing_species) == new_species:
+                                base_scenario = existing_scenario.copy()
+                                break
+
+                    # B . Before we do iter, that picking on the first item of base_scenario, let use all the possibility in the replanting and non_replanting
+                    if base_scenario is None:
+                        for other_zone_scenario in old_scenario_exante_toedit.values():
+                            if zone in other_zone_scenario:
+                                for existing_species, existing_scenario in other_zone_scenario[zone].items():
+                                    if (existing_species == new_species or 
+                                        update_species_name.get(existing_species) == new_species):
+                                        base_scenario = existing_scenario.copy()
+                                        break
+                            if base_scenario:
+                                break
+
+
+                    # # B1. If no match at all, fall back to the first available species
                     if base_scenario is None and zone in zone_scenario and zone_scenario[zone]:
                         base_scenario = next(iter(zone_scenario[zone].values()), {}).copy()
                     
@@ -85,17 +114,23 @@ def process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_a
                     if base_scenario is None:
                         base_scenario = {}
                     
-                    # Create the new scenario, which inherits all keys from the template
+                    #####################################
+                    # Create the new scenario, which inherits all keys from the template <--- we can manouver this section later
                     new_scenario = base_scenario
-                    
-                    # Override specific values
-                    new_scenario["mortality_percent"] = adding_prev_mortality_rate
+                    if is_replanting == 'non_replanting':
+                        # Override specific values
+                        new_scenario["mortality_percent"] = adding_prev_mortality_rate
+
+                    else: # create logic, separate the mort. existing previous trees, and newly replanting trees
+                        new_scenario['mortality_percent'] = override_mortality_replanting
                     
                     # Set harvesting_year, using the template's value or a default
                     if zone == "protected_zone":
                         new_scenario["harvesting_year"] = base_scenario.get("harvesting_year", 30)
                     elif zone == "production_zone":
                         new_scenario["harvesting_year"] = base_scenario.get("harvesting_year", 10)
+
+                    ######################################
                     
                     updated_scenario[zone][new_species] = new_scenario
 
