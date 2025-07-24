@@ -2782,8 +2782,11 @@ class ExPostAnalysis:
     
             # These are the only keys that will be processed as planting zones
             VALID_ZONES = ["production_zone", "protected_zone"]
+            print('old_scenario_exante_toedit :',old_scenario_exante_toedit)
+            print('update_species_name :', update_species_name)
 
             for is_replanting, zone_scenario in old_scenario_exante_toedit.items():
+                
                 updated_scenario = {}
 
                 # 1. Process existing species from the old scenario
@@ -2810,6 +2813,7 @@ class ExPostAnalysis:
                             updated_scenario[zone] = {}
 
                         for new_species in new_species_list:
+                            print('new_species :',new_species)
                             base_scenario = None
                             # # Extract the first word of the new species name as the keyword
                             # new_species_keyword = new_species.split(' ')[0]
@@ -2859,6 +2863,7 @@ class ExPostAnalysis:
                             
                             #####################################
                             # Create the new scenario, which inherits all keys from the template <--- we can manouver this section later
+                            print('base_scenario: ',base_scenario)
                             new_scenario = base_scenario
                             if is_replanting == 'non_replanting':
                                 # Override specific values
