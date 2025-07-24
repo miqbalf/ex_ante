@@ -2617,51 +2617,52 @@ class ExPostAnalysis:
 
         all_scenario = {}
         if override_new_scenario == "":
+            # Define the keys that represent actual planting zones.
+            # This is the key fix to ignore metadata like "replanting" inside a scenario.
+            VALID_ZONES = ["production_zone", "protected_zone"]
+
             for is_replanting, zone_scenario in old_scenario_exante_toedit.items():
                 updated_scenario = {}
 
-                # First, process all existing zones and species
-                for zone, species_scenario_map in zone_scenario.items():
-                    # Ensure the zone key exists in the new dictionary
-                    if zone not in updated_scenario:
-                        updated_scenario[zone] = {}
+                # Process existing species within the valid zones
+                for zone in VALID_ZONES:
+                    # Only proceed if the valid zone exists in the input data
+                    if zone in zone_scenario:
+                        species_scenario_map = zone_scenario[zone]
+                        
+                        if zone not in updated_scenario:
+                            updated_scenario[zone] = {}
 
-                    for species, scenario in species_scenario_map.items():
-                        # Check if the species is still present in the filtered dataframe
-                        if species in concat_df[concat_df["zone"] == zone]["Lat. Name"].to_list():
-                            
-                            # FIX 3: Work with a copy to avoid modifying the original data (safer)
-                            updated_single_scenario = scenario.copy()
-                            
-                            # Override the mortality rate as intended
-                            updated_single_scenario["mortality_percent"] = adding_prev_mortality_rate
-                            
-                            # Add the updated scenario to the correct zone and species
-                            updated_scenario[zone][species] = updated_single_scenario
+                        for species, scenario in species_scenario_map.items():
+                            # This check allows you to filter for species that are still relevant
+                            if species in concat_df[concat_df["zone"] == zone]["Lat. Name"].to_list():
+                                
+                                # By copying the scenario, you preserve all original fields
+                                # like "natural_thinning", "frequency_manual_thinning", etc.
+                                updated_single_scenario = scenario.copy()
+                                
+                                # Then, you can override specific values as needed
+                                updated_single_scenario["mortality_percent"] = adding_prev_mortality_rate
+                                
+                                updated_scenario[zone][species] = updated_single_scenario
 
-                # Second, add any new species
-                if new_species_to_be_added_zone:  # Check if the dictionary is not empty
+                # Add any new species (if applicable)
+                if new_species_to_be_added_zone:
                     for zone, new_species_list in new_species_to_be_added_zone.items():
+                        if zone not in VALID_ZONES:
+                            continue
+
                         if zone not in updated_scenario:
                             updated_scenario[zone] = {}
 
                         for new_species in new_species_list:
-                            # FIX 2 & 4: Simplified and safer logic to create a scenario for a new species.
-                            # This avoids the StopIteration crash and complex lookups.
-                            
-                            # Define a default base scenario to use as a fallback
                             base_scenario = {}
-                            
-                            # Try to find a template from an existing species in the *current* zone first.
-                            # This safely gets the first item's value or None if the dictionary is empty.
                             if zone in zone_scenario and zone_scenario[zone]:
                                 base_scenario = next(iter(zone_scenario[zone].values()), {}).copy()
 
-                            # Set properties for the new species scenario
                             new_scenario = base_scenario
                             new_scenario["mortality_percent"] = adding_prev_mortality_rate
-
-                            # Apply zone-specific defaults for harvesting year
+                            
                             if zone == "protected_zone":
                                 new_scenario["harvesting_year"] = base_scenario.get("harvesting_year", 30)
                             elif zone == "production_zone":
@@ -2669,8 +2670,7 @@ class ExPostAnalysis:
                             
                             updated_scenario[zone][new_species] = new_scenario
 
-                # FIX 1: This line is now correctly indented.
-                # It runs once per 'is_replanting' loop, after all zones have been processed.
+                # Assign the fully processed scenario to the final dictionary
                 all_scenario[is_replanting] = updated_scenario
             
             # now writing - updating to the json file updated_scenario
