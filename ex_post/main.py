@@ -2615,9 +2615,10 @@ class ExPostAnalysis:
 
         new_species_to_be_added_zone = new_data
 
-        updated_scenario = {}
+        all_scenario = {}
         if override_new_scenario == "":
             for is_replanting, zone_scenario in old_scenario_exante_toedit.items():
+                updated_scenario = {}
                 for zone, species_scenario in zone_scenario.items():
                     print('zone :',zone)
                     for species, scenario in species_scenario.items():
@@ -2684,13 +2685,16 @@ class ExPostAnalysis:
                                         "mortality_percent"
                                     ] = adding_prev_mortality_rate  # in default (0) this is basically used the same number as expost, no additional mortality rate
 
-                # now writing - updating to the json file updated_scenario
-                gdrive_location_scenario_rate = os.path.join(
-                    root_folder, f"{project_name}_forestry_scenario.json"
-                )
+                all_scenario[is_replanting] = updated_scenario
+            
+            # now writing - updating to the json file updated_scenario
+            gdrive_location_scenario_rate = os.path.join(
+                root_folder, f"{project_name}_forestry_scenario.json"
+            )
 
-                with open(gdrive_location_scenario_rate, "w") as scenario_json:
-                    json.dump(updated_scenario, scenario_json, indent=4)
+            updated_scenario = all_scenario ## all_scenario is a fix debug
+            with open(gdrive_location_scenario_rate, "w") as scenario_json:
+                json.dump(updated_scenario, scenario_json, indent=4)
 
         else:  # if we want to override the scenario with the manual input path in override_new_scenario
             gdrive_location_scenario_rate = override_new_scenario
