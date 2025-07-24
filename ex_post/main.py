@@ -1,5 +1,6 @@
 import json
 import os
+import copy
 
 import exante  # needed to get the module_path
 import geopandas as gpd
@@ -2742,12 +2743,20 @@ class ExPostAnalysis:
                 root_folder, f"{project_name}_forestry_scenario.json"
             )
 
-            all_scenario = process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_added_zone, 
-                            adding_prev_mortality_rate=adding_prev_mortality_rate, update_species_name = update_species_name, override_mortality_replanting=override_mortality_replanting)
-            updated_scenario = all_scenario # all_scnario is fixing the bug earlier
+            # FIX: Pass a deep copy of the scenario to prevent issues from
+            # unintended modifications elsewhere in the class.
+            all_scenario = process_scenarios(
+                copy.deepcopy(old_scenario_exante_toedit), # Use deepcopy here
+                concat_df, 
+                new_species_to_be_added_zone,
+                adding_prev_mortality_rate=adding_prev_mortality_rate, 
+                update_species_name=update_species_name, 
+                override_mortality_replanting=override_mortality_replanting
+            )
+            updated_scenario = all_scenario
             with open(gdrive_location_scenario_rate, "w") as scenario_json:
                 json.dump(all_scenario, scenario_json, indent=4)
-            print('TEST THIS: ',updated_scenario)
+            print('TEST THIS: ', updated_scenario)
 
         else:  # if we want to override the scenario with the manual input path in override_new_scenario
             gdrive_location_scenario_rate = override_new_scenario
