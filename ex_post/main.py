@@ -2736,27 +2736,38 @@ class ExPostAnalysis:
 
         new_species_to_be_added_zone = new_data
 
+        # Find the path to the original, correct scenario file
+        old_scenario_exante_path = os.path.join(
+            root_folder_prev, f"{project_name_prev}_forestry_scenario.json"
+        )
+        
+        # ... more code ...
+
         if override_new_scenario == "":
-            
-            # now writing - updating to the json file updated_scenario
             gdrive_location_scenario_rate = os.path.join(
                 root_folder, f"{project_name}_forestry_scenario.json"
             )
 
-            # FIX: Pass a deep copy of the scenario to prevent issues from
-            # unintended modifications elsewhere in the class.
+            # --- THE DEFINITIVE FIX ---
+            # Reload the original scenario from the file to get a guaranteed clean copy,
+            # bypassing any modifications that happened inside the class instance.
+            with open(old_scenario_exante_path, "r") as f:
+                clean_old_scenario = json.load(f)
+
+            # Now, call the function with the freshly loaded, clean data
             all_scenario = process_scenarios(
-                copy.deepcopy(old_scenario_exante_toedit), # Use deepcopy here
-                concat_df, 
+                clean_old_scenario,  # <-- Use the guaranteed-clean dictionary
+                concat_df,
                 new_species_to_be_added_zone,
-                adding_prev_mortality_rate=adding_prev_mortality_rate, 
-                update_species_name=update_species_name, 
-                override_mortality_replanting=override_mortality_replanting
+                update_species_name,
+                adding_prev_mortality_rate,
+                override_mortality_replanting
             )
+            # --- END FIX ---
+
             updated_scenario = all_scenario
             with open(gdrive_location_scenario_rate, "w") as scenario_json:
                 json.dump(all_scenario, scenario_json, indent=4)
-            print('TEST THIS: ', updated_scenario)
 
         else:  # if we want to override the scenario with the manual input path in override_new_scenario
             gdrive_location_scenario_rate = override_new_scenario
