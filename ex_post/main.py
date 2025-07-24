@@ -2732,7 +2732,6 @@ class ExPostAnalysis:
 
         new_species_to_be_added_zone = new_data
 
-        all_scenario = {}
         if override_new_scenario == "":
             
             # now writing - updating to the json file updated_scenario
@@ -2744,7 +2743,8 @@ class ExPostAnalysis:
                             adding_prev_mortality_rate=adding_prev_mortality_rate, update_species_name = update_species_name, override_mortality_replanting=override_mortality_replanting)
             updated_scenario = all_scenario # all_scnario is fixing the bug earlier
             with open(gdrive_location_scenario_rate, "w") as scenario_json:
-                json.dump(updated_scenario, scenario_json, indent=4)
+                json.dump(all_scenario, scenario_json, indent=4)
+            print('TEST THIS: ',updated_scenario)
 
         else:  # if we want to override the scenario with the manual input path in override_new_scenario
             gdrive_location_scenario_rate = override_new_scenario
