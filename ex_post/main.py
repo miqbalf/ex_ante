@@ -2748,24 +2748,39 @@ class ExPostAnalysis:
                 root_folder, f"{project_name}_forestry_scenario.json"
             )
 
-            # --- THE DEFINITIVE FIX ---
-            # Reload the original scenario from the file to get a guaranteed clean copy,
-            # bypassing any modifications that happened inside the class instance.
-            with open(old_scenario_exante_path, "r") as f:
-                clean_old_scenario = json.load(f)
+            # all_scenario_exante_toedit
+            concat_df = self.df_tree_selected_updated
 
-            # Now, call the function with the freshly loaded, clean data
-            all_scenario = process_scenarios(
-                clean_old_scenario,  # <-- Use the guaranteed-clean dictionary
-                concat_df,
-                new_species_to_be_added_zone,
-                update_species_name,
-                adding_prev_mortality_rate,
-                override_mortality_replanting
-            )
-            # --- END FIX ---
+            # Find differences
+            new_dict_species_zone = (
+                        concat_df.groupby("zone")[name_column_species_allo]
+                        .apply(list)
+                        .to_dict()
+                    )
+            # new_dict_species_zone
 
-            updated_scenario = all_scenario
+            dict_zone_species = {
+                k: [species_list for species_list in v.keys()]
+                for k, v in old_scenario_exante_toedit.items()
+            }
+
+            new_data = {}
+            for zone, species_list in new_dict_species_zone.items():
+                crosscheck_list = dict_zone_species.get(
+                    zone, []
+                )  # Get corresponding list from dict2
+                new_data[zone] = [
+                    species for species in species_list if species not in crosscheck_list
+                ]
+
+            new_data = {zone: species for zone, species in new_data.items() if species}
+
+            new_species_to_be_added_zone = new_data
+
+            all_scenario = process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_added_zone, 
+                            adding_prev_mortality_rate=adding_prev_mortality_rate, update_species_name = update_species_name, override_mortality_replanting=override_mortality_replanting)
+            updated_scenario = all_scenario # all_scnario is fixing the bug earlier
+
             with open(gdrive_location_scenario_rate, "w") as scenario_json:
                 json.dump(all_scenario, scenario_json, indent=4)
 
