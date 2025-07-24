@@ -2777,8 +2777,110 @@ class ExPostAnalysis:
 
             new_species_to_be_added_zone = new_data
 
-            all_scenario = process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_added_zone, 
-                            adding_prev_mortality_rate=adding_prev_mortality_rate, update_species_name = update_species_name, override_mortality_replanting=override_mortality_replanting)
+
+            all_scenario = {}
+    
+            # These are the only keys that will be processed as planting zones
+            VALID_ZONES = ["production_zone", "protected_zone"]
+
+            for is_replanting, zone_scenario in old_scenario_exante_toedit.items():
+                updated_scenario = {}
+
+                # 1. Process existing species from the old scenario
+                for zone in VALID_ZONES:
+                    if zone in zone_scenario:
+                        species_scenario_map = zone_scenario[zone]
+                        updated_scenario[zone] = {}
+
+                        for species, scenario in species_scenario_map.items():
+                            # Check if the species is still considered valid
+                            if species in concat_df[concat_df["zone"] == zone]["Lat. Name"].to_list():
+                                # Copy all parameters from the old scenario by default
+                                updated_single_scenario = scenario.copy()
+                                # Override any specific values
+                                updated_single_scenario["mortality_percent"] = adding_prev_mortality_rate
+                                updated_scenario[zone][species] = updated_single_scenario
+
+                # 2. Add any new species with the special template-finding logic
+                if new_species_to_be_added_zone:
+                    for zone, new_species_list in new_species_to_be_added_zone.items():
+                        if zone not in VALID_ZONES:
+                            continue
+                        if zone not in updated_scenario:
+                            updated_scenario[zone] = {}
+
+                        for new_species in new_species_list:
+                            base_scenario = None
+                            # # Extract the first word of the new species name as the keyword
+                            # new_species_keyword = new_species.split(' ')[0]
+
+                            # # A. Try to find a template in the current zone using the keyword
+                            # if zone in zone_scenario:
+                            #     for existing_species, existing_scenario in zone_scenario[zone].items():
+                            #         if existing_species.startswith(new_species_keyword):
+                            #             base_scenario = existing_scenario.copy()
+                            #             break  # Found the best template, stop searching
+
+
+                            # A. the same exact name
+                            if zone in zone_scenario:
+                                for existing_species, existing_scenario in zone_scenario[zone].items():
+                                    if existing_species == new_species:
+                                        base_scenario = existing_scenario.copy()
+                                        break  # Found the best template, stop searching
+
+                            # A1 . Try template using the existing dictionary key, value (if there is changing code of species code) within the same species due to e.g allometry formula, or growth model changes
+                            if zone in zone_scenario:
+                                for existing_species, existing_scenario in zone_scenario[zone].items():
+                                    if update_species_name.get(existing_species) == new_species:
+                                        base_scenario = existing_scenario.copy()
+                                        break
+
+                            # B . Before we do iter, that picking on the first item of base_scenario, let use all the possibility in the replanting and non_replanting
+                            if base_scenario is None:
+                                for other_zone_scenario in old_scenario_exante_toedit.values():
+                                    if zone in other_zone_scenario:
+                                        for existing_species, existing_scenario in other_zone_scenario[zone].items():
+                                            if (existing_species == new_species or 
+                                                update_species_name.get(existing_species) == new_species):
+                                                base_scenario = existing_scenario.copy()
+                                                break
+                                    if base_scenario:
+                                        break
+
+
+                            # # B1. If no match at all, fall back to the first available species
+                            if base_scenario is None and zone in zone_scenario and zone_scenario[zone]:
+                                base_scenario = next(iter(zone_scenario[zone].values()), {}).copy()
+                            
+                            # C. If still no template, use an empty dictionary
+                            if base_scenario is None:
+                                base_scenario = {}
+                            
+                            #####################################
+                            # Create the new scenario, which inherits all keys from the template <--- we can manouver this section later
+                            new_scenario = base_scenario
+                            if is_replanting == 'non_replanting':
+                                # Override specific values
+                                new_scenario["mortality_percent"] = adding_prev_mortality_rate
+
+                            else: # create logic, separate the mort. existing previous trees, and newly replanting trees
+                                new_scenario['mortality_percent'] = override_mortality_replanting
+                            
+                            # Set harvesting_year, using the template's value or a default
+                            if zone == "protected_zone":
+                                new_scenario["harvesting_year"] = base_scenario.get("harvesting_year", 30)
+                            elif zone == "production_zone":
+                                new_scenario["harvesting_year"] = base_scenario.get("harvesting_year", 10)
+
+                            ######################################
+                            
+                            updated_scenario[zone][new_species] = new_scenario
+
+                all_scenario[is_replanting] = updated_scenario
+
+            # all_scenario = process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_added_zone, 
+            #                 adding_prev_mortality_rate=adding_prev_mortality_rate, update_species_name = update_species_name, override_mortality_replanting=override_mortality_replanting)
             updated_scenario = all_scenario # all_scnario is fixing the bug earlier
 
             with open(gdrive_location_scenario_rate, "w") as scenario_json:
