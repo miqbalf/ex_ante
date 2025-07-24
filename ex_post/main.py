@@ -2007,6 +2007,7 @@ class ExPostAnalysis:
         override_new_formula="",
         override_new_scenario="",
         adding_prev_mortality_rate=0,  # if we want to add more mortality rate to expost data in the year 1
+        override_mortality_replanting = 40,
         update_species_name={},
         sigmoid_remodel_growth=False,
     ):
@@ -2739,9 +2740,9 @@ class ExPostAnalysis:
                 root_folder, f"{project_name}_forestry_scenario.json"
             )
 
-            all_scenario = process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_added_zone, adding_prev_mortality_rate=0)
-
-            updated_scenario = all_scenario ## all_scenario is a fix debug
+            all_scenario = process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_added_zone, 
+                            adding_prev_mortality_rate=adding_prev_mortality_rate, update_species_name = update_species_name, override_mortality_replanting=override_mortality_replanting)
+            updated_scenario = all_scenario # all_scnario is fixing the bug earlier
             with open(gdrive_location_scenario_rate, "w") as scenario_json:
                 json.dump(updated_scenario, scenario_json, indent=4)
 
