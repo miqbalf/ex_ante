@@ -24,6 +24,9 @@ from .utils import (
 
 def process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_added_zone, adding_prev_mortality_rate=0, 
             override_mortality_replanting = 40, update_species_name={}):
+    print(f"check argument here def process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_added_zone = {new_species_to_be_added_zone}, adding_prev_mortality_rate={adding_prev_mortality_rate}, \n "
+            f"override_mortality_replanting = {override_mortality_replanting}, update_species_name={update_species_name})")
+
     """
     Processes and updates planting scenarios based on old data and new species.
 
