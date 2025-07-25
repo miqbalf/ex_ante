@@ -2955,6 +2955,7 @@ class ExPostAnalysis:
         )
 
         ex_ante.conf_general = self.conf_general_updated
+        ex_ante.config = ex_ante.conf_general
 
         # self.input_scenario_prev_path
         with open(self.input_scenario_prev_path, "r") as scenario_json:

@@ -438,7 +438,7 @@ class CSIExante:
 
                         print(f"check query all_df[(all_df['year']=={start_year}-1) & (all_df['species']=={species_name}) & \n (all_df['Plot_ID']=={plot_id}) & (all_df['harvest_time']==True)] & (all_df['year_start']=={year_start}) & (all_df['is_replanting']=={is_replanting})")
 
-                        display(filtered_df_prev_year)
+                        # display(filtered_df_prev_year)
 
                         # when we are on the cycle 3 to the end of the project, case of inprosula, we will have multiple query of remnant trees and harvest time (prev. cycle), so we will skip the remnant_trees query
                         # if a > 0:
