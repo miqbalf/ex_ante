@@ -458,7 +458,7 @@ def simulate_all_proportions_NO_STOP(
 
 # following tree c-sink extending the next cycle process
 def allowed_cut_harvest(
-    df, plot_id, year, species, dict_csu_plot_year, harvest_time=False, config={}
+    df, plot_id, year, species, year_start, is_replanting, dict_csu_plot_year, harvest_time=False, config={}
 ):
     # creating the conditional based on the above condition (harvest gap) and get the mod method, to ensure the repetitive cycle, next replanting is accounted
     csu = plot_id
@@ -469,7 +469,7 @@ def allowed_cut_harvest(
 
     if harvest_time:
         # should be retained >= 40% -> allowed cut - < 60%, in csu level summary
-        prop_60_percent_csu = dict_csu_plot_year[(csu, year)]["total_tCO2e"] * float(
+        prop_60_percent_csu = dict_csu_plot_year[(csu, year, year_start, is_replanting)]["total_tCO2e"] * float(
             harvesting_max_percent / 100.00
         )
         return prop_60_percent_csu

@@ -917,7 +917,7 @@ class CSIExante:
                 # restructure and create dict object of the group by csu # do not reset index of this
                 # plot_carbon_csu = df_csu_first_cycle.groupby(["Plot_ID","year"])["total_csu_tCO2e_species"].agg([np.sum]).rename(columns=dict(sum='total_tCO2e')) # its okay, still works, this will generate only one plotid, and total its csu tco2e
                 plot_carbon_csu = (
-                    df_csu_first_cycle.groupby(["Plot_ID", "year"])[
+                    df_csu_first_cycle.groupby(["Plot_ID", "year","year_start","is_replanting"])[  # we will include the additional field, to match up the percentage algorithm
                         "total_csu_tCO2e_species"
                     ]
                     .agg(["sum"])
@@ -932,6 +932,8 @@ class CSIExante:
                         x["Plot_ID"],
                         x["year"],
                         x["species"],
+                        x['year_start'],
+                        x['is_replanting'],
                         dict_csu_plot_year,
                         harvest_time=x["harvest_time"],
                         config=self.config,
@@ -962,7 +964,7 @@ class CSIExante:
                 # plot_carbon_harvest_cycle_only_sum = plot_carbon_harvest_cycle_only.groupby(["Plot_ID", "year","year_start"])["total_csu_tCO2e_species"].agg([np.sum]).rename(columns=dict(sum='total_tCO2e_harvest_cycle_csu'))
                 plot_carbon_harvest_cycle_only_sum = (
                     plot_carbon_harvest_cycle_only.groupby(
-                        ["Plot_ID", "year", "year_start"]
+                        ["Plot_ID", "year", "year_start","is_replanting"]
                     )["total_csu_tCO2e_species"]
                     .agg(["sum"])
                     .rename(columns=dict(sum="total_tCO2e_harvest_cycle_csu"))
@@ -977,8 +979,8 @@ class CSIExante:
                     filtered_df,
                     plot_carbon_harvest_cycle_only_sum,
                     how="left",
-                    left_on=["Plot_ID", "year", "year_start"],
-                    right_on=["Plot_ID", "year", "year_start"],
+                    left_on=["Plot_ID", "year", "year_start",'is_replanting'],
+                    right_on=["Plot_ID", "year", "year_start",'is_replanting'],
                 )
                 # display(filtered_df_harvest)
 
@@ -989,13 +991,14 @@ class CSIExante:
                             "Plot_ID",
                             "year",
                             "year_start",
+                            'is_replanting',
                             "species",
                             "total_tCO2e_harvest_cycle_csu",
                         ]
                     ],
                     how="left",
-                    left_on=["Plot_ID", "species", "year", "year_start"],
-                    right_on=["Plot_ID", "species", "year", "year_start"],
+                    left_on=["Plot_ID", "species", "year", "year_start",'is_replanting'],
+                    right_on=["Plot_ID", "species", "year", "year_start",'is_replanting'],
                 )
 
                 filtered_df = filtered_df.copy()
@@ -1083,6 +1086,8 @@ class CSIExante:
                     "area_ha",
                     "species",
                     "year",
+                    'year_start',
+                    'is_replanting',
                     "total_csu_tCO2e_species",
                     "rotation_year",
                     "harvest_time",
