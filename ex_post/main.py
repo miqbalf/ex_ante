@@ -2321,8 +2321,11 @@ class ExPostAnalysis:
                 )
 
                 # # this is a quickfix/ hotfix we will now focus on unique_label, but we make them as Plot_ID, and has backup column
-                # merge_plot_species = merge_plot_species.rename(
-                #                 columns={'unique_label': 'Plot_ID' })
+                merge_plot_species = merge_plot_species.rename(
+                                columns={'Plot_ID': 'Plot_ID_backup' })
+                
+                merge_plot_species = merge_plot_species.rename(
+                                columns={'unique_label': 'Plot_ID' })
 
         # recalculate the area_ha based on treeo cloud Plot_Area
         merge_plot_species["area_ha"] = (
