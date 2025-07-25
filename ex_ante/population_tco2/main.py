@@ -264,7 +264,7 @@ def num_tco_years(
         joined_pivot_num_trees_all[0] = mortality_csu_df["num_trees_All"]
 
         # Calculate the grand total for each numeric column
-        grand_total_num_trees = joined_pivot_num_trees_all.sum()
+        grand_total_num_trees = joined_pivot_num_trees_all.sum(numeric_only=True)
 
         # Create a new row with the grand total values and the appropriate index
         grand_total_row = pd.DataFrame(

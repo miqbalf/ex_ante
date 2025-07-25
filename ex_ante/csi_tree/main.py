@@ -651,7 +651,7 @@ class CSIExante:
                     # This is to get the Total carbon per CSU, categorized by year
                     # plot_carbon_csu = result_df.groupby(["Plot_ID", "year"])["total_csu_tCO2e_species"].agg([np.sum]).rename(columns=dict(sum='total_tCO2e'))
                     plot_carbon_csu = (
-                        result_df.groupby(["Plot_ID", "year"])[
+                        result_df.groupby(["Plot_ID", "year",'year_start','is_replanting'])[
                             "total_csu_tCO2e_species"
                         ]
                         .agg(["sum"])
@@ -666,6 +666,8 @@ class CSIExante:
                             x["Plot_ID"],
                             x["year"],
                             x["species"],
+                            x['year_start'],
+                            x['is_replanting'],
                             dict_csu_plot_year,
                             harvest_time=x["harvest_time"],
                             config=self.config,
