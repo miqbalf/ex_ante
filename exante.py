@@ -362,11 +362,12 @@ class Plot:
     current_year: int
     trees: {}
 
-    def __init__(self, area_ha=0, csv_plot=""):
+    def __init__(self, area_ha=0, csv_plot="", override_avg_tree_perha=''):
         self.area_ha = area_ha
         self.current_year = 1
         self.trees = set()
         self.csv_plot = csv_plot
+        self.override_avg_tree_perha = override_avg_tree_perha
         if csv_plot == "":
             print("no csv file for the seedling location")
         else:
