@@ -369,7 +369,7 @@ def calculate_and_merge_proportions(plot_carbon_df, scenario_dict, simulation_fu
             if override_avg_tree_perha != '':
                 initial_num_trees = row['num_trees']
                 row[initial_density_col] = override_avg_tree_perha
-                area_ha = row[initial_density_col] * initial_num_trees
+                area_ha = override_avg_tree_perha * initial_num_trees
                 density_threshold_trees = row[max_density_col] * area_ha  # area_ha in this, is number trees per ha (scenario spacing) * number trees in expost!
 
             if (

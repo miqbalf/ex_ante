@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def calc_plot_csu(gdrive_location_seedling):
+def calc_plot_csu(gdrive_location_seedling, override_avg_tree_perha=''):
     # read the csv
     plot_sum = pd.read_csv(gdrive_location_seedling)
     # if we want to import back from pandas object (previously exported to csv), we need to make sure this column is not included
@@ -35,6 +35,8 @@ def calc_plot_csu(gdrive_location_seedling):
     plot_sum["total_num_trees"] = plot_sum.loc[:, mask].sum(axis=1)
 
     plot_sum["avgtrees_per_ha"] = plot_sum["total_num_trees"] / plot_sum["area_ha"]
+    if override_avg_tree_perha != '':
+        plot_sum["avgtrees_per_ha"] = override_avg_tree_perha # this is needed for expost thinning_stop =True
 
     # melt_plot_species = pd.melt(plot_sum, id_vars=["Plot_ID",	"Plot_Name",'mu', 'zone',"area_ha", 'year_start' ],
     melt_plot_species = pd.melt(

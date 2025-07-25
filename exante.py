@@ -374,7 +374,7 @@ class Plot:
             None
 
     def csu_distribution(self) -> dict:
-        return calc_plot_csu(self.csv_plot)
+        return calc_plot_csu(self.csv_plot, override_avg_tree_perha = self.override_avg_tree_perha)
 
     # average scenario on getting number trees based on trees per ha
     def plant_trees(self, tree_species: str, trees_per_ha: int):
@@ -1056,6 +1056,7 @@ class ExAnteCalc(AllometryLibrary):
             input_scenario_species=self.input_scenario_species,
             df_tco2_selected=self.df_tco2_selected,
             config=self.conf_general,
+            override_avg_tree_perha=self.override_avg_tree_perha
         )
 
         self.dict_plot_scenario = csi.dict_plot_scenario
