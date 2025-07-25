@@ -2685,7 +2685,7 @@ class ExPostAnalysis:
         self.input_scenario_prev_path = old_scenario_exante_path
         old_scenario_exante_toedit = old_scenario_exante
 
-        if 'nonreplanting' in old_scenario_exante_toedit.keys():
+        if 'non_replanting' in old_scenario_exante_toedit.keys():
             old_scenario_exante_toedit = old_scenario_exante_toedit
 
         else:
