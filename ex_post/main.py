@@ -2316,7 +2316,7 @@ class ExPostAnalysis:
 
                 # re-adjust the unique_label
                 merge_plot_species["unique_label"] = merge_plot_species.apply(
-                    lambda x: f"{x['Plot_ID']}_{x['measurement_type']}_{x['year_start']}",
+                    lambda x: f"{x['Plot_ID']}_{x['measurement_type']}_{x['year_start']}_{x['is_replanting']}", # fix the issue with consistency unique value of plot_id based on this combination update. found issue in inprosula, now its fixed
                     axis=1,
                 )
 

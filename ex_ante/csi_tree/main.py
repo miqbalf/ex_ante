@@ -20,11 +20,30 @@ from .utils import (
     transform_plot_base_dict,
 )
 
+filtered_column = [
+                "Plot_ID",
+                "area_ha",
+                "species",
+                "year",
+                "total_csu_tCO2e_species",
+                "rotation_year",
+                "harvest_time",
+                "remnant_trees",
+                "allowed_cut_proportion_okay",
+                "remnant_level",
+                "num_trees",
+                "num_trees_harvested",
+                "num_trees_retained",
+                "allowed_cut_csu",
+                "tCO2e_retained",
+                "cycle_harvest",
+                "tCO2e_harvest_allowed_species",
+                "tco2_per_tree",
+            ]
 
 # Custom exception
 class BreakAllLoops(Exception):
     pass
-
 
 class CSIExante:
     def __init__(
@@ -402,10 +421,10 @@ class CSIExante:
                     ) - (
                         (year_start) - 1
                     )  # its coded now the key includes the info of year_start
-                    # print(f'year {start_year} of rotation year: {rotation_year} of species {species_name}')
+                    print(f'year {start_year} of rotation year: {rotation_year} of species {species_name}')
 
                     # detect if species is harvested on the specific year before start year (actual year)
-                    # print('detect if species is harvested on the specific year before start year (actual year)')
+                    print('detect if species is harvested on the specific year before start year (actual year)')
                     if start_year - harvest_year >= 0:
 
                         filtered_df_prev_year = all_df[
@@ -417,7 +436,9 @@ class CSIExante:
                             & (all_df["is_replanting"] == is_replanting)
                         ]
 
-                        # print(f"check query all_df[(all_df['year']=={start_year}-1) & (all_df['species']=={species_name}) & \n (all_df['Plot_ID']=={plot_id}) & (all_df['harvest_time']==True)] & (all_df['year_start']=={year_start}) & (all_df['is_replanting']=={is_replanting})")
+                        print(f"check query all_df[(all_df['year']=={start_year}-1) & (all_df['species']=={species_name}) & \n (all_df['Plot_ID']=={plot_id}) & (all_df['harvest_time']==True)] & (all_df['year_start']=={year_start}) & (all_df['is_replanting']=={is_replanting})")
+
+                        display(filtered_df_prev_year)
 
                         # when we are on the cycle 3 to the end of the project, case of inprosula, we will have multiple query of remnant trees and harvest time (prev. cycle), so we will skip the remnant_trees query
                         # if a > 0:
@@ -430,7 +451,7 @@ class CSIExante:
                         # print('this is prev year for above query')
                         # # display(filtered_df_prev_year[filtered_column])
                         #
-                        # print(f'\nIteration recursive counter!!  a : {a}  LOOP NUMBER {a+1}')
+                        print(f'\nIteration recursive counter!!  a : {a}  LOOP NUMBER {a+1}')
 
                         # display(filtered_df_prev_year[filtered_column])
 
@@ -440,15 +461,16 @@ class CSIExante:
 
                             # display(filtered_df_prev_year)
 
-                            # print(f'start with {species_name} at year {start_year} when the rotation of {rotation_year} in cycle {math.ceil(start_year/harvest_year)}')
-                            # print('in a gap plant and harvest, rotation 0 means, we take a break, let the soil quality regenerated')
-                            # print('still in acquire_remnant_harvest')
-                            # print(f"query of all_df[(all_df['year']=={start_year-1}) & (all_df['species']=={species_name}) & \n (all_df['Plot_ID']=={k})]")
+                            print(f'start with {species_name} at year {start_year} when the rotation of {rotation_year} in cycle {math.ceil(start_year/harvest_year)}')
+                            print('still in acquire_remnant_harvest')
+                            print(f"query of all_df[(all_df['year']=={start_year-1}) & (all_df['species']=={species_name}) & \n (all_df['Plot_ID']=={plot_id})]")
 
                             # this is only assume that this is the only row that come up of the same year, same species, but there are case when remnant trees replanted in the following year and the remnant harvest need to be harvested
                             # prev_harvest_time = filtered_df_prev_year['harvest_time'].iloc[0]
                             # tCO2e_retained = float(filtered_df_prev_year['tCO2e_retained'].iloc[0])
                             # prev_num_trees_harvested = int(filtered_df_prev_year['num_trees_harvested'].iloc[0])
+                            # print('in a gap plant and harvest, rotation 0 means, we take a break, let the soil quality regenerated')
+                            
 
                             # this is already check above, if the query is empty or not
                             list_prev_tCO2e_retained = filtered_df_prev_year[
@@ -472,20 +494,23 @@ class CSIExante:
                             dict_index_species_tCO2e = {}
                             dict_index_species_tree_retained = {}
 
+                            # display(list_prev_num_trees_harvested)
+                            display(filtered_df_prev_year[filtered_column])
+
                             # now we will need to iterate to those item in the query result that assume to be more than one for some specific case (eg beginning of third cycle Inprosula)
                             # print(f'NOW WE WILL DO AN ITERATION OF THE QUERY RESULT: FOUND {len(list_prev_num_trees_harvested)} record')
                             for i in range(len(list_prev_num_trees_harvested)):
                                 remnant_reset = []
 
-                                # print(f'this is year of {start_year} that have the data:')
-                                # print('----------------------------------------------------------------------')
-                                # print('prev TCO2e retained: ', list_prev_tCO2e_retained[i])
+                                print(f'this is year of {start_year} that have the data:')
+                                print('----------------------------------------------------------------------')
+                                print('prev TCO2e retained: ', list_prev_tCO2e_retained[i])
                                 tCO2e_retained = list_prev_tCO2e_retained[i]
                                 dict_index_species_tCO2e[i] = tCO2e_retained
 
-                                # print(f'process of {i+1} out of {len(list_prev_num_trees_harvested)} rows')
-                                # print(f'tCO2e_retained: {tCO2e_retained}')
-                                # print(f'species name: {species_name}')
+                                print(f'process of {i+1} out of {len(list_prev_num_trees_harvested)} rows')
+                                print(f'tCO2e_retained: {tCO2e_retained}')
+                                print(f'species name: {species_name}')
 
                                 prev_num_trees_harvested = (
                                     list_prev_num_trees_harvested[i]
@@ -541,13 +566,13 @@ class CSIExante:
                                         override_planting = True
                                         override_number = prev_num_trees_harvested
 
-                                    # print('trees_retained----------------------------------------------------\n\n', trees_retained_batch , '\n--------------------------------------------------')
+                                    print('trees_retained----------------------------------------------------\n\n', trees_retained_batch , '\n--------------------------------------------------')
 
                                     # print('displaying all df:')
                                     # display(all_df)
 
-                                    # print('----------------------------\n')
-                                    # since we do a recursive, next recursive will be used trees_retained directly,so that the trees harvested are equal to the trees retained
+                                    print('----------------------------\n')
+                                    #since we do a recursive, next recursive will be used trees_retained directly,so that the trees harvested are equal to the trees retained
 
                                     end_cycle_adjust = (
                                         start_year + harvest_year - 1
@@ -744,10 +769,10 @@ class CSIExante:
                     )
                     result_df["tCO2e_retained"] = result_df["tCO2e_retained"].fillna(0)
 
-                    # print(f'---------------------HEEEEYYYYY this the sum of all species tCO2e in plot {k}')
-                    # print(sum(list_all_species_tCO2e))
-                    # print('--------------------------------')
-                    # print('--------------------------------')
+                    print(f'---------------------HEEEEYYYYY this the sum of all species tCO2e in plot {k}')
+                    print(sum(list_all_species_tCO2e))
+                    print('--------------------------------')
+                    print('--------------------------------')
 
                     # display(result_df[(result_df['species']=='Anthocephalus cadamba | White Jabon - West Java') & (result_df['year']==11)])
                     # result_df['allowed_cut_proportion_okay'] = result_df.apply(lambda x: True if x['allowed_cut_csu'] > x['total_tCO2e_harvest_cycle_csu'] else False, axis=1)
@@ -761,7 +786,7 @@ class CSIExante:
 
                     # display(result_df)
 
-                    # if start_year == 21:
+                    # if start_year == 16:  #DEBUG
                     #     return result_df
                     #     raise BreakAllLoops  # Break out of all loops for testing and checking
 
@@ -1116,11 +1141,11 @@ class CSIExante:
                                     for z in range(len(harvest_list))
                                     if z == i + 1
                                 ]
-                                # print(f'dealing with the next. harvest cycle, from year array year_start {year_start_arr} of starting year {start_year_arr} \
-                                #         \n to array {end_year_arr} in plot {plot_id} and is_replanting {is_replanting} \n-----------------------------------------------------------------')
+                                print(f'dealing with the next. harvest cycle, from year array year_start {year_start_arr} of starting year {start_year_arr} \
+                                        \n to array {end_year_arr} in plot {plot_id} and is_replanting {is_replanting} \n-----------------------------------------------------------------')
                                 start_year = harvest_list[i] + 1
                                 end_year = harvest_list[i + 1]
-                                # print(f'dealing with the next. harvest cycle, from {start_year} to {end_year} in plot {plot_id} \n-----------------------------------------------------------------')
+                                print(f'dealing with the next. harvest cycle, from {start_year} to {end_year} in plot {plot_id} \n-----------------------------------------------------------------')
 
                                 filtered_df_i = plot_carbon.copy()
                                 filtered_df_i = filtered_df_i[
