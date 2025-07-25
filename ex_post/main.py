@@ -2012,6 +2012,7 @@ class ExPostAnalysis:
         override_new_scenario="",
         adding_prev_mortality_rate=0,  # if we want to add more mortality rate to expost data in the year 1
         override_mortality_replanting = 40,
+        override_natural_thinning='',
         update_species_name={},
         sigmoid_remodel_growth=False,
     ):
@@ -2871,6 +2872,9 @@ class ExPostAnalysis:
 
                             else: # create logic, separate the mort. existing previous trees, and newly replanting trees
                                 new_scenario['mortality_percent'] = override_mortality_replanting
+
+                            if override_natural_thinning!='':
+                                new_scenario['natural_thinning'] = override_natural_thinning
                             
                             # Set harvesting_year, using the template's value or a default
                             if zone == "protected_zone":
