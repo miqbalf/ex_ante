@@ -1002,7 +1002,7 @@ class ExAnteCalc(AllometryLibrary):
         # run the export csv after model is started running
         self.growth_selected.to_csv(self.gdrive_growth_selected)
 
-        p = Plot(csv_plot=self.gdrive_location_seedling)
+        p = Plot(csv_plot=self.gdrive_location_seedling, override_avg_tree_perha=self.override_avg_tree_perha)
         self.plot_seedling = p.csu_distribution()
 
         self.plot_sum = self.plot_seedling["plot_sum"]
