@@ -428,6 +428,7 @@ class ExAnteCalc(AllometryLibrary):
         override_num_trees_0=False,  # by default there is no override for num_trees_0 because this is for initial ex-ante,
         # but for updated ex-ante we should put to True if you want to visualize in num_trees_over_years, also with this following argument its mortality df
         mortality_csu_df=pd.DataFrame(),  # default as empty data Frame
+        override_avg_tree_perha= ''
     ):
         self.growth_csv = growth_csv
         self.allometry_csv = allometry_csv
@@ -451,6 +452,8 @@ class ExAnteCalc(AllometryLibrary):
         self.conversion_tco2 = conversion_tco2
         self.override_num_trees_0 = override_num_trees_0
         self.mortality_csu_df = mortality_csu_df
+
+        self.override_avg_tree_perha = override_avg_tree_perha # for the thinning stop override expost
 
         if self.parent_folder == "":
             self.parent_folder = "00_ex_ante_result"

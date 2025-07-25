@@ -287,7 +287,7 @@ def simulate_all_proportions_for_species(
     return results  # Return dictionary {year: proportion}
 
 
-def calculate_and_merge_proportions(plot_carbon_df, scenario_dict, simulation_func):
+def calculate_and_merge_proportions(plot_carbon_df, scenario_dict, simulation_func, override_avg_tree_perha=''):
     """
     Pre-calculates proportions using a simulation function and merges them
     onto the main DataFrame.
@@ -365,6 +365,12 @@ def calculate_and_merge_proportions(plot_carbon_df, scenario_dict, simulation_fu
             initial_num_trees = row[initial_density_col] * row[area_col]
             density_threshold_trees = row[max_density_col] * row[area_col]
             area_ha = row[area_col]  # For validation
+
+            if override_avg_tree_perha != '':
+                initial_num_trees = row['num_trees']
+                row[initial_density_col] = override_avg_tree_perha
+                area_ha = row[initial_density_col] * initial_num_trees
+                density_threshold_trees = row[max_density_col] * area_ha  # area_ha in this, is number trees per ha (scenario spacing) * number trees in expost!
 
             if (
                 np.isnan(initial_num_trees)

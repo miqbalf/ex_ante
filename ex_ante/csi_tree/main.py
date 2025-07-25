@@ -54,6 +54,7 @@ class CSIExante:
         input_scenario_species: dict,
         config: dict,
         df_tco2_selected: pd.DataFrame,
+        override_avg_tree_perha='' # new for the thinning stop
     ):
 
         # self.plot_seedling = plot_seedling
@@ -73,6 +74,8 @@ class CSIExante:
         self.dict_min_harvest_year_plot = {}
         self.dict_plot_start_year = {}
         self.dict_plot_scenario = {}
+
+        self.override_avg_tree_perha = override_avg_tree_perha
 
         melt_plot_species = self.melt_plot_species
         # re-work on the dict_plot_scenario
@@ -308,6 +311,7 @@ class CSIExante:
                 plot_carbon,  # Pass the DataFrame
                 self.dict_plot_scenario,  # Pass the config dict
                 simulate_all_proportions_for_species,  # Pass the correct simulation function
+                override_avg_tree_perha =self.override_avg_tree_perha
             )
             
 
@@ -495,7 +499,7 @@ class CSIExante:
                             dict_index_species_tree_retained = {}
 
                             # display(list_prev_num_trees_harvested)
-                            display(filtered_df_prev_year[filtered_column])
+                            # display(filtered_df_prev_year[filtered_column])
 
                             # now we will need to iterate to those item in the query result that assume to be more than one for some specific case (eg beginning of third cycle Inprosula)
                             # print(f'NOW WE WILL DO AN ITERATION OF THE QUERY RESULT: FOUND {len(list_prev_num_trees_harvested)} record')

@@ -2007,6 +2007,7 @@ class ExPostAnalysis:
         gap_harvest=False,
         harvesting_max_percent=59.9,
         thinning_stop=False, # set to False, to accomodate the old model
+        override_avg_tree_perha = '' #for thinning stop in expost if it set to True above, should apply this, because in reality, the space for planting is not entire plot
         force_load_seedling_csv="",
         override_new_formula="",
         override_new_scenario="",
@@ -2382,6 +2383,7 @@ class ExPostAnalysis:
             name_column_species_growth=name_column_species_growth,  #'Tree Species(+origin of allom. formula)', # hardcoded, revisit later
             override_num_trees_0=self.override_num_trees_0,
             mortality_csu_df=csu_species_mortality_check,
+            override_avg_tree_perha=override_avg_tree_perha
         )
 
         ### variable input for the scenario
