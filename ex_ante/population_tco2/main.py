@@ -11,13 +11,16 @@ def num_tco_years(
     distribution_seedling: str = "",  # if we use the existing distribution_seedling path manually, otherwise we will use the same directory from is_save_to_csv
 ):
     # df_ex_ante = pd.read_csv(config['csv_file_exante'])
-    df_ex_ante = df_ex_ante.rename(
-        columns={
-            "Plot_ID": "Plot_ID_exante",
-            "mu": "managementUnit",
-            "zone": "plotZone",
-        }
-    )
+    if 'managementUnit' in df_ex_ante.columns:
+        df_ex_ante = df_ex_ante.rename(columns={'Plot_ID': 'Plot_ID_exante', "zone": "plotZone"})
+    else:
+        df_ex_ante = df_ex_ante.rename(
+            columns={
+                "Plot_ID": "Plot_ID_exante",
+                "mu": "managementUnit",
+                "zone": "plotZone",
+            }
+        )
 
     # Creating a pivot table, ex_ante adjustment for num_trees and tco2e
     pivot_df_num_trees_tco2e = pd.pivot_table(

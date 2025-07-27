@@ -1135,15 +1135,15 @@ class ExAnteCalc(AllometryLibrary):
 
         # display(all_df_merged)  # troubleshoot only
 
-        num_tco_years_run = num_tco_years(
-            df_ex_ante=all_df_merged,
-            is_save_to_csv=path_file,
-            distribution_seedling=self.gdrive_location_seedling,
-            override_num_trees_0=self.override_num_trees_0,
-            mortality_csu_df=self.mortality_csu_df,
-        )
-        display(num_tco_years_run["exante_num_trees_yrs"])
-        display(num_tco_years_run["exante_tco2e_yrs"])
+        # num_tco_years_run = num_tco_years(
+        #     df_ex_ante=all_df_merged,
+        #     is_save_to_csv=path_file,
+        #     distribution_seedling=self.gdrive_location_seedling,
+        #     override_num_trees_0=self.override_num_trees_0,
+        #     mortality_csu_df=self.mortality_csu_df,
+        # )
+        # display(num_tco_years_run["exante_num_trees_yrs"])
+        # display(num_tco_years_run["exante_tco2e_yrs"])
 
         return all_df_merged
 
