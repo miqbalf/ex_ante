@@ -2020,7 +2020,7 @@ class ExPostAnalysis:
                     process_calc = df_replanting_only.copy()
                     process_calc['year_start'] = process_calc['year_start'] + [i]
                     process_calc['All_trees_need_replanted'] = process_calc['All_trees_need_replanted'] * proportion_delay_list[i] / 100
-                    process_calc['All_trees_planned'] = process_calc['All_trees_planned'] * proportion_delay_list[i] / 100
+                    # process_calc['All_trees_planned'] = process_calc['All_trees_planned'] * proportion_delay_list[i] / 100
                     process_calc['num_trees_total'] = process_calc['num_trees_total'] * proportion_delay_list[i] / 100
 
                     # loop to all the column with endswith _num_trees
