@@ -265,6 +265,8 @@ class ExPostAnalysis:
         self.validated_df = pd.DataFrame()
         self.validated_csu_species = pd.DataFrame()
 
+        self.update_species_name = {} # for replanting_plan later
+
         self.gdf_plot = gpd.read_file(self.config["plot_file_geojson"])
         self.gdf_plot_cleaned = self.gdf_plot[
             [
@@ -1776,11 +1778,14 @@ class ExPostAnalysis:
 
         ####
         # if use remaining_year_exante = False --> set these
-        use_mortality_data = False # for this to be True, we need to setup the dataframe mortality from prev. scenario
+        use_mortality_data = True # for this to be True, we need to setup the dataframe mortality from prev. scenario
+        # if use_mortality_data True --> set this
+        df_mortality = species_mortality_tcloud
         # if use_mortality_data False --> set these
         list_override_species = ['falcataria_moluccana']
-        list_override_proportion = [{'protected_zone': 100,
-                                    'production_zone':100}] # percentage above as per index (i) of list_override_species
+        # list_override_proportion = [{'protected_zone': 100,
+        #                               'production_zone':100}] # percentage above as per index (i) of list_override_species
+        list_override_proportion = []
         include_prevnatural_thinning = 0 # adding more tree to mitigate natural thinning
         mortality_threshold = 20 #selection of tree species based on threshold on mortality rate data (df)
         '''
@@ -1788,6 +1793,10 @@ class ExPostAnalysis:
         if manual_replanting_plan == "":
             # previous_scenario = self.updated_exante.csu_seedling
             previous_scenario = ex_ante_dist_csu
+            update_species_name = self.update_species_name
+            if update_species_name != {}:
+                for k,v in update_species_name.items():
+                    previous_scenario = previous_scenario.rename(columns={k+'_num_trees':v+'_num_trees'})# change this into the updated column of the data update
             max_year_exante = int(previous_scenario['year_start'].max())
             raw_expost_update = ex_post_dist_csu.copy()
             raw_expost_update['mu'] = raw_expost_update['managementUnit']
@@ -1807,6 +1816,10 @@ class ExPostAnalysis:
                     list_year_filter = [i+max_year_expost+1 for i in range(max_year_exante-max_year_expost)] # list year filter, get the remaining list year after expost data
                     agg_exante = process_plot_data(ex_ante_dist_csu, year_filter=list_year_filter,
                                                 columns_to_remove = ['is_replanting', 'plantingStartDate', 'plantingEndDate', 'area_ha'])
+                    
+                    if update_species_name != {}:
+                        for k,v in update_species_name.items():
+                            agg_exante = agg_exante.rename(columns={k+'_num_trees':v+'_num_trees'})# change this into the updated column of the data update
                 
                     df_replanting_only = agg_exante.copy()
                     df_replanting_only['All_trees_need_replanted'] = df_replanting_only['num_trees_total']
@@ -1823,6 +1836,10 @@ class ExPostAnalysis:
                 plot_distribution_update = agg_expost
 
                 previous_scenario = agg_exante.copy()
+                if update_species_name != {}:
+                    for k,v in update_species_name.items():
+                        previous_scenario = previous_scenario.rename(columns={k+'_num_trees':v+'_num_trees'})# change this into the updated column of the data update
+
 
                 # previous_scenario['All_trees_planned'] = previous_scenario[
                 #     [col for col in previous_scenario.columns if col.endswith("_num_trees")]
@@ -1941,10 +1958,39 @@ class ExPostAnalysis:
                     )
                 )
 
+                # debugging
+                # if len(list_override_proportion) == 1:
+
+                #     # Your predefined line, which creates a list of references
+                #     list_override_proportion_mult = list_override_proportion * len(list_good_species)
+
+                #     # **THE FIX**: Immediately overwrite the list with a new one containing true copies.
+                #     # This iterates through your list of references and makes an independent copy of each item.
+                #     list_override_proportion_mult = [item.copy() for item in list_override_proportion_mult]
+
+                #     # The rest of your code now works as expected
+                #     list_len = len(list_override_proportion_mult) 
+
+                #     # print(f"DEBUG: The first item's value is {list_override_proportion_mult[0]['protected_zone']} and the divisor is {list_len}")
+
+                #     for item in list_override_proportion_mult:
+                #       item['protected_zone'] /= list_len
+                #       item['production_zone'] /= list_len
+
+                #     # print(f"Final result: {list_override_proportion_mult[0]['protected_zone']}")
+                #     list_override_proportion = list_override_proportion_mult
+                
+                def cond_prop_zone(row, override_prop_dict):
+                    if row["zone"] in override_prop_dict:
+                        return float(override_prop_dict[row["zone"]]) / 100.00
+                    else:
+                        return 0
+
                 # Create new columns using a lambda function and list comprehension - for enforce also manual list shares above
+                # data validation is required, that all the zone need to be 100?, so that there is no len here
                 for i in range(len(list_good_species)):
                     species = list_good_species[i]
-                    if list_override_proportion == []:
+                    if list_override_proportion == [] and use_mortality_data:
                         # we will put 0 if there is over planting
                         previous_scenario_check_proportion[list_proportion_suffix[i]] = (
                             previous_scenario_check_proportion.apply(
@@ -1957,15 +2003,20 @@ class ExPostAnalysis:
                                 axis=1,
                             )
                         )
+                    elif list_override_proportion != [] and use_mortality_data:
+                        if len(list_override_proportion) != len(list_good_species):
+                            print('list_override_proportion: ', list_override_proportion)
+                            print('list_good_species: ',list_good_species)
+                            raise ValueError(f'inconsistent number of species will be replant vs scenario proportion zone \n len(list_override_proportion) ({len(list_override_proportion)})) should equal to len(list_good_species) ({len(list_good_species)})')
                     else:
                         # we will put 0 if there is over planting and we will put the specific protected_zone and production proportion override based on index in the list
-                        def cond_prop_zone(row, override_prop_dict):
-                            if row["zone"] in override_prop_dict:
-                                return float(override_prop_dict[row["zone"]]) / 100.00
-                            else:
-                                return 0
+                        
 
+                        # print('you manually define the proportion zone, if you define use_mortality_rate True, suggest to use argument prop = [] to use prev. exante proportion scenario')
+
+                        # debug in above, with len. meaning that it will treat as the same
                         zone_prop = list_override_proportion[i]
+
                         # Apply the function to the DataFrame
                         previous_scenario_check_proportion[list_proportion_suffix[i]] = (
                             previous_scenario_check_proportion.apply(
@@ -2136,6 +2187,8 @@ class ExPostAnalysis:
         update_species_name={},
         sigmoid_remodel_growth=False,
     ):
+
+        self.update_species_name = update_species_name
 
         import json
 
