@@ -6,6 +6,7 @@ import exante  # needed to get the module_path
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+from typing import List, Optional
 from dateutil.relativedelta import relativedelta
 from ex_ante.population_tco2.main import num_tco_years
 from ex_ante.utils.calc_formula_string import calc_biomass_formula
@@ -141,6 +142,95 @@ def process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_a
         all_scenario[is_replanting] = updated_scenario
     
     return all_scenario
+
+def process_plot_data(
+    df: pd.DataFrame,
+    year_max: Optional[int] = None,
+    year_filter: Optional[List[int]] = None,
+    expost_agg: bool = False,
+    columns_to_remove: Optional[List[str]] = None,
+) -> pd.DataFrame:
+    """
+    Aggregates tree count data for plots based on specified parameters.
+
+    This function processes a DataFrame by filtering, grouping, and aggregating
+    tree counts. It can perform a standard grouping by 'year_start' or a
+    cumulative aggregation up to a specified 'year_max' or the latest year
+    in the dataset.
+
+    Args:
+        df (pd.DataFrame): Input DataFrame containing plot data. Must include
+            'Plot_ID', 'year_start', and columns ending in '_num_trees'.
+        year_max (Optional[int]): If provided, all data is aggregated into a
+            single year specified by this value. Defaults to None.
+        year_filter (Optional[List[int]]): A list of years to include from the
+            'year_start' column. If provided, data is filtered before any
+            aggregation. Defaults to None.
+        expost_agg (bool): If True and year_max is not set, performs a
+            cumulative aggregation up to the latest 'year_start' found in the
+            data. Defaults to False.
+        columns_to_remove (Optional[List[str]]): A list of column names to
+            drop before processing. Defaults to None.
+
+    Returns:
+        pd.DataFrame: A processed DataFrame with aggregated tree counts and
+            a 'num_trees_total' column.
+
+    Raises:
+        ValueError: If no columns ending in '_num_trees' are found.
+    """
+    # 1. Create a working copy and perform initial cleaning
+    df_processed = df.copy()
+
+    if columns_to_remove:
+        # Gracefully handle columns that may not exist in the DataFrame
+        cols_to_drop = [col for col in columns_to_remove if col in df_processed.columns]
+        df_processed.drop(columns=cols_to_drop, inplace=True)
+
+    if year_filter:
+        df_processed = df_processed[df_processed['year_start'].isin(year_filter)]
+        if df_processed.empty:
+            return pd.DataFrame() # Return empty DataFrame if filter removes all data
+
+    # 2. Identify columns for aggregation
+    tree_cols = [col for col in df_processed.columns if col.endswith("_num_trees")]
+    if not tree_cols:
+        raise ValueError("No columns found ending with '_num_trees'.")
+
+    # 3. Determine grouping strategy and prepare the DataFrame
+    is_cumulative_agg = year_max is not None or expost_agg
+    group_by_cols = ['Plot_ID']
+
+    if is_cumulative_agg:
+        year_index_col = 'year_max'
+        # Set the target year for the cumulative aggregation
+        agg_year = year_max if year_max is not None else df_processed['year_start'].max()
+        df_processed[year_index_col] = agg_year
+    else:
+        year_index_col = 'year_start'
+    
+    group_by_cols.append(year_index_col)
+
+    # 4. Aggregate the tree count data
+    agg_spec = {col: 'sum' for col in tree_cols}
+    aggregated_trees = df_processed.groupby(group_by_cols, as_index=False).agg(agg_spec)
+
+    # 5. Prepare the metadata by getting unique rows based on group keys
+    metadata_cols = df_processed.columns.drop(tree_cols).tolist()
+    # When doing a cumulative aggregation, 'year_start' is no longer a relevant metadata key
+    if is_cumulative_agg and 'year_start' in metadata_cols:
+        metadata_cols.remove('year_start')
+    
+    metadata_df = df_processed[metadata_cols].drop_duplicates(subset=group_by_cols)
+
+    # 6. Merge aggregated tree counts back with their metadata
+    result_df = pd.merge(metadata_df, aggregated_trees, on=group_by_cols, how='left')
+
+    # 7. Final calculations and cleanup
+    result_df[tree_cols] = result_df[tree_cols].fillna(0)
+    result_df['num_trees_total'] = result_df[tree_cols].sum(axis=1)
+
+    return result_df
 
 
 class ExPostAnalysis:
@@ -1654,7 +1744,7 @@ class ExPostAnalysis:
 
     def replanting_plan(
         self,
-        use_mortality_data=True,
+        use_mortality_data=False,
         df_mortality: pd.DataFrame = None,
         mortality_threshold="",
         list_override_species: list = [],  # list species here as the treeocloud db manually not using threshold above - ensure that exist in species_json
@@ -1662,258 +1752,287 @@ class ExPostAnalysis:
         ex_ante_dist_csu: pd.DataFrame = None,
         ex_post_dist_csu: pd.DataFrame = None,
         manual_replanting_plan="",
-        conditional_gap_replanting_year=False,
+        conditional_gap_replanting_year=False, proportion_delay_list=[50,50],
         num_year_replanting_add=1,
         is_include_large_tree=False,  # by default we will use no large tree, if there are large tree in expost, please adjust to True
-        include_prevnatural_thinning=5,  # this one added and set as default (5%) that we will replant after the previous existing number trees has apply the natural thinning so that we replant trees more
+        include_prevnatural_thinning=0,  # this one added and set as default (5%) that we will replant after the previous existing number trees has apply the natural thinning so that we replant trees more
+        use_remaining_year_exante = False
     ):
-        # manual replanting is a csv location that will not been automatically generated below/ importing them
+        '''
+        ########### example argument, and description
+        manual_replanting_plan = ''  # this is if we have pre-define csv of replanting plan only (not entire seedling dist)
+
+        is_include_large_tree = True # relate to the column grouping, set this to True, if your calc define the large tree already with the column of 'measurement_type'
+
+        # set for the condition if we want to split the replanting action e.g into two years
+        conditional_gap_replanting_year = True
+        # if the conditional_gap_replanting_year = True --> set this
+        proportion_delay_list = [50,50]  # this should get the 100
+
+        num_year_replanting_add = 1 #if there is any delay
+
+        ##### this one is important related to the tpp agreement (stick with addendum, or new replanting)
+        use_remaining_year_exante = False # if we want to use the prev. scenario (e.g replanting addendum) without additional replanting adjustment
+
+        ####
+        # if use remaining_year_exante = False --> set these
+        use_mortality_data = False # for this to be True, we need to setup the dataframe mortality from prev. scenario
+        # if use_mortality_data False --> set these
+        list_override_species = ['falcataria_moluccana']
+        list_override_proportion = [{'protected_zone': 100,
+                                    'production_zone':100}] # percentage above as per index (i) of list_override_species
+        include_prevnatural_thinning = 0 # adding more tree to mitigate natural thinning
+        mortality_threshold = 20 #selection of tree species based on threshold on mortality rate data (df)
+        '''
+
         if manual_replanting_plan == "":
             # previous_scenario = self.updated_exante.csu_seedling
             previous_scenario = ex_ante_dist_csu
-            previous_scenario["All_trees_planned"] = previous_scenario[
-                [col for col in previous_scenario.columns if col.endswith("_num_trees")]
-            ].sum(axis=1)
+            max_year_exante = int(previous_scenario['year_start'].max())
+            raw_expost_update = ex_post_dist_csu.copy()
+            raw_expost_update['mu'] = raw_expost_update['managementUnit']
+            max_year_expost = int(raw_expost_update['year_start'].max())
 
             # if there is large tree, we need to ensure the distribution clearly for plot distribution large trees and added into replanting plan with mixing later the tree evidence
-            if is_include_large_tree == True:
-                raw_expost_update = ex_post_dist_csu.copy()
-                # remove the unique (label, measurement_type) to aggregate only based on plot_id
-                updated_drop_columns = raw_expost_update.drop(
-                    columns=["measurement_type", "unique_label"]
-                )
+            if is_include_large_tree == True:  # this is after the process in recalc_exante
+                agg_expost = process_plot_data(ex_post_dist_csu, expost_agg=True, columns_to_remove=['measurement_type', "unique_label",'is_replanting'])
 
-                # get the max year_start each respective plot (to add later +1 in the next year replanting), and sum of the num_trees each respective plot_id
-                # Define aggregation functions dynamically
-                agg_functions = {"year_start": "max"}
+            else:
+                # plot_distribution_update = expost.seedling_distribution_updated
+                agg_expost = process_plot_data(ex_post_dist_csu, expost_agg=True, columns_to_remove=["unique_label",'is_replanting'])
 
-                columns_trees_list = [
-                    species
-                    for species in updated_drop_columns.columns
-                    if species.endswith("_num_trees")
-                ]
-                for species in columns_trees_list:
-                    agg_functions[species] = "sum"
 
-                # Group by 'Plot_ID' and apply the defined aggregations
-                plot_agg_yearmax_sum_species = (
-                    updated_drop_columns.groupby("Plot_ID")
-                    .agg(agg_functions)
-                    .reset_index()
-                )
+            if use_remaining_year_exante:
+                if  max_year_expost <  max_year_exante:
+                    list_year_filter = [i+max_year_expost+1 for i in range(max_year_exante-max_year_expost)] # list year filter, get the remaining list year after expost data
+                    agg_exante = process_plot_data(ex_ante_dist_csu, year_filter=list_year_filter,
+                                                columns_to_remove = ['is_replanting', 'plantingStartDate', 'plantingEndDate', 'area_ha'])
+                
+                    df_replanting_only = agg_exante.copy()
+                    df_replanting_only['All_trees_need_replanted'] = df_replanting_only['num_trees_total']
+                    
+                
+                else:
+                    raise ValueError(f"you can't choose the use_remaining_year_exante argument, because max_year_expost ({max_year_expost}) >  max_year_exante ({max_year_exante}))")
+            
+            else:
+                agg_exante = process_plot_data(ex_ante_dist_csu,
+                                                columns_to_remove = ['is_replanting', 'plantingStartDate', 'plantingEndDate', 'area_ha'], 
+                                                year_max=max_year_expost) # use expost max, to join the data later
 
-                updated_drop_columns_to_join = updated_drop_columns.drop(
-                    columns=["year_start"] + columns_trees_list
-                )
-                updated_drop_columns_to_join = (
-                    updated_drop_columns_to_join.drop_duplicates()
-                )
+                plot_distribution_update = agg_expost
 
-                # fix aggregated num_trees based on Plot_ID
-                fix_plot_distribution = pd.merge(
-                    updated_drop_columns_to_join,
-                    plot_agg_yearmax_sum_species[
-                        ["Plot_ID", "year_start"] + columns_trees_list
-                    ],
+                previous_scenario = agg_exante.copy()
+
+                # previous_scenario['All_trees_planned'] = previous_scenario[
+                #     [col for col in previous_scenario.columns if col.endswith("_num_trees")]
+                # ].sum(axis=1)
+
+                previous_scenario['All_trees_planned'] = previous_scenario['num_trees_total']
+
+                # check ex-post based only update
+                plot_distribution_update = plot_distribution_update.rename(
+                    columns={"year_max": "year_all_planted"}
+                )  # we will replace as planted
+                # plot_distribution_update['year_start_planted'] = plot_distribution_update['year_start']
+                new_replanting_plot_distribution = pd.merge(
+                    plot_distribution_update,
+                    previous_scenario[["Plot_ID", "All_trees_planned"]],
                     on=["Plot_ID"],
                     how="left",
                 )
 
-                plot_distribution_update = fix_plot_distribution
+                new_replanting_plot_distribution["All_trees_num_expost"] = (
+                    new_replanting_plot_distribution[
+                        [
+                            col
+                            for col in new_replanting_plot_distribution.columns
+                            if col.endswith("_num_trees")
+                        ]
+                    ].sum(axis=1)
+                )
 
-            else:
-                # plot_distribution_update = expost.seedling_distribution_updated
-                plot_distribution_update = ex_post_dist_csu
+                new_replanting_plot_distribution["All_trees_num_expost"] = (
+                    new_replanting_plot_distribution.apply(
+                        lambda x: x["All_trees_num_expost"]
+                        * float(100 - include_prevnatural_thinning)
+                        / 100.00,
+                        axis=1,
+                    )
+                )
 
-            # check ex-post based only update
-            plot_distribution_update = plot_distribution_update.rename(
-                columns={"year_start": "year_start_planted"}
-            )  # we will replace as planted
-            # plot_distribution_update['year_start_planted'] = plot_distribution_update['year_start']
-            new_replanting_plot_distribution = pd.merge(
-                plot_distribution_update,
-                previous_scenario[["Plot_ID", "All_trees_planned"]],
-                on=["Plot_ID"],
-                how="left",
-            )
+                # Step 1: Calculate 'All_trees_need_replanted' --- readjust the new trees_planned with forecasting the natural thinning if any
+                new_replanting_plot_distribution["All_trees_need_replanted"] = (
+                    new_replanting_plot_distribution["All_trees_planned"]
+                    - new_replanting_plot_distribution["All_trees_num_expost"]
+                )
 
-            new_replanting_plot_distribution["All_trees_num_expost"] = (
-                new_replanting_plot_distribution[
+                # Step 2: Adjust 'All_trees_need_replanted' to set negative values to 0 and carry over the deficit
+                carry_over = 0
+                adjusted_values = []
+
+                # enable the carry over algorithm --> if previous column has negative number (due to over planted) it will put the negative to next column, next column has less number,
+                # in total all the trees will be the same
+                for index, row in new_replanting_plot_distribution.iterrows():
+                    # Add carry-over from the previous row
+                    current_value = row["All_trees_need_replanted"] + carry_over
+
+                    if current_value < 0:
+                        carry_over = (
+                            current_value  # Set carry-over if current value is negative
+                        )
+                        adjusted_values.append(0)  # Set current row value to 0
+                    else:
+                        carry_over = 0  # Reset carry-over if no deficit
+                        adjusted_values.append(current_value)
+
+                # Update the column with adjusted values
+                new_replanting_plot_distribution["All_trees_need_replanted"] = (
+                    adjusted_values
+                )
+                # new_replanting_plot_distribution['is_replanting'] = False
+
+                if use_mortality_data == True:
+                    # for the option-1 replanting species selection, we will use the species mortality rate that below the rate of all project mortality
+                    # in kplpb all the fruit trees are higher than overall mortality rate (>19%), therefore, all the trees < 19% will be included
+                    # let's do it programmatically if the default is using this all number
+                    if mortality_threshold == "":
+                        mortality_threshold = df_mortality["mortality_rate"].iloc[-1]
+                    else:
+                        mortality_threshold = mortality_threshold
+                    list_good_species = df_mortality[
+                        df_mortality["mortality_rate"] < mortality_threshold
+                    ].index.to_list()
+                    list_good_species = [
+                        x for x in list_good_species if x != "All"
+                    ]  # just to ensure the line of All (from prev. total row) is not included
+                else:  # meaning we dont use the data frame generated
+                    if (
+                        list_override_species != [] and list_override_proportion == []
+                    ):  # manually to just put the species we want to add
+                        list_good_species = list_override_species  # this species should be a treeocloud list
+                        print(
+                            "please make sure this list below is exist in ex-ante plan previously for every zone/ management plot"
+                        )
+                        print(
+                            "other wise if not, please consider to put manual <list_override_proportion> as well"
+                        )
+                    elif list_override_proportion != [] and list_override_species != []:
+                        list_good_species = list_override_species
+                        list_good_prop = list_override_proportion
+                    else:
+                        print("please add argument list_override_species there")
+                        raise ValueError("please add argument list_override_species there")
+                # return back to the original proportion based on first ex-ante in plot
+                # this list from treeo cloud will be converted to coredb naming, and will assess the proportion based on ex-ante proportion
+                list_good_species_coredb = [
+                    f"{species_reverse_coredb(i, self.config['species_json'])}"
+                    for i in list_good_species
+                ]
+                print("list species for replanting: ", list_good_species_coredb)
+
+                list_proportion_suffix = [i + "_prop" for i in list_good_species_coredb]
+                list_num_trees_suffix = [i + "_num_trees" for i in list_good_species_coredb]
+
+                previous_scenario_check_proportion = previous_scenario.copy()
+                previous_scenario_check_proportion["filtered_total_planned"] = (
+                    previous_scenario_check_proportion.apply(
+                        lambda x: x[list_num_trees_suffix].sum(), axis=1
+                    )
+                )
+
+                # Create new columns using a lambda function and list comprehension - for enforce also manual list shares above
+                for i in range(len(list_good_species)):
+                    species = list_good_species[i]
+                    if list_override_proportion == []:
+                        # we will put 0 if there is over planting
+                        previous_scenario_check_proportion[list_proportion_suffix[i]] = (
+                            previous_scenario_check_proportion.apply(
+                                lambda x: (
+                                    x[list_num_trees_suffix[i]]
+                                    / x["filtered_total_planned"]
+                                    if x["filtered_total_planned"] != 0
+                                    else 0
+                                ),
+                                axis=1,
+                            )
+                        )
+                    else:
+                        # we will put 0 if there is over planting and we will put the specific protected_zone and production proportion override based on index in the list
+                        def cond_prop_zone(row, override_prop_dict):
+                            if row["zone"] in override_prop_dict:
+                                return float(override_prop_dict[row["zone"]]) / 100.00
+                            else:
+                                return 0
+
+                        zone_prop = list_override_proportion[i]
+                        # Apply the function to the DataFrame
+                        previous_scenario_check_proportion[list_proportion_suffix[i]] = (
+                            previous_scenario_check_proportion.apply(
+                                lambda x: cond_prop_zone(x, zone_prop), axis=1
+                            )
+                        )
+
+                # replanting df creation
+                new_replanting_plot_distribution_joined = pd.merge(
+                    new_replanting_plot_distribution,
+                    previous_scenario_check_proportion[
+                        ["Plot_ID", "year_max"]
+                        + [
+                            col
+                            for col in previous_scenario_check_proportion.columns
+                            if col.endswith("prop")
+                        ]
+                    ],
+                    left_on=["Plot_ID", "year_all_planted"],
+                    right_on=["Plot_ID", "year_max"],
+                    how="left",
+                )
+
+                df_replanting_only = new_replanting_plot_distribution_joined[
                     [
                         col
-                        for col in new_replanting_plot_distribution.columns
-                        if col.endswith("_num_trees")
+                        for col in new_replanting_plot_distribution_joined
+                        if not col.endswith("_num_trees")
                     ]
-                ].sum(axis=1)
-            )
-
-            new_replanting_plot_distribution["All_trees_num_expost"] = (
-                new_replanting_plot_distribution.apply(
-                    lambda x: x["All_trees_num_expost"]
-                    * float(100 - include_prevnatural_thinning)
-                    / 100.00,
-                    axis=1,
-                )
-            )
-
-            # Step 1: Calculate 'All_trees_need_replanted' --- readjust the new trees_planned with forecasting the natural thinning if any
-            new_replanting_plot_distribution["All_trees_need_replanted"] = (
-                new_replanting_plot_distribution["All_trees_planned"]
-                - new_replanting_plot_distribution["All_trees_num_expost"]
-            )
-
-            # Step 2: Adjust 'All_trees_need_replanted' to set negative values to 0 and carry over the deficit
-            carry_over = 0
-            adjusted_values = []
-
-            # enable the carry over algorithm --> if previous column has negative number (due to over planted) it will put the negative to next column, next column has less number,
-            # in total all the trees will be the same
-            for index, row in new_replanting_plot_distribution.iterrows():
-                # Add carry-over from the previous row
-                current_value = row["All_trees_need_replanted"] + carry_over
-
-                if current_value < 0:
-                    carry_over = (
-                        current_value  # Set carry-over if current value is negative
-                    )
-                    adjusted_values.append(0)  # Set current row value to 0
-                else:
-                    carry_over = 0  # Reset carry-over if no deficit
-                    adjusted_values.append(current_value)
-
-            # Update the column with adjusted values
-            new_replanting_plot_distribution["All_trees_need_replanted"] = (
-                adjusted_values
-            )
-            # new_replanting_plot_distribution['is_replanting'] = False
-
-            if use_mortality_data == True:
-                # for the option-1 replanting species selection, we will use the species mortality rate that below the rate of all project mortality
-                # in kplpb all the fruit trees are higher than overall mortality rate (>19%), therefore, all the trees < 19% will be included
-                # let's do it programmatically if the default is using this all number
-                if mortality_threshold == "":
-                    mortality_threshold = df_mortality["mortality_rate"].iloc[-1]
-                else:
-                    mortality_threshold = mortality_threshold
-                list_good_species = df_mortality[
-                    df_mortality["mortality_rate"] < mortality_threshold
-                ].index.to_list()
-                list_good_species = [
-                    x for x in list_good_species if x != "All"
-                ]  # just to ensure the line of All (from prev. total row) is not included
-            else:
-                if (
-                    list_override_species != [] and list_override_proportion == []
-                ):  # manually to just put the species we want to add
-                    list_good_species = list_override_species  # this species should be a treeocloud list
-                    print(
-                        "please make sure this list below is exist in ex-ante plan previously for every zone/ management plot"
-                    )
-                    print(
-                        "other wise if not, please consider to put manual <list_override_proportion> as well"
-                    )
-                elif list_override_proportion != [] and list_override_species != []:
-                    list_good_species = list_override_species
-                    list_good_prop = list_override_proportion
-                else:
-                    print("please add argument list_override_species there")
-                    return None
-            # return back to the original proportion based on first ex-ante in plot
-            # this list from treeo cloud will be converted to coredb naming, and will assess the proportion based on ex-ante proportion
-            list_good_species_coredb = [
-                f"{species_reverse_coredb(i, self.config['species_json'])}"
-                for i in list_good_species
-            ]
-            print("list species for replanting: ", list_good_species_coredb)
-
-            list_proportion_suffix = [i + "_prop" for i in list_good_species_coredb]
-            list_num_trees_suffix = [i + "_num_trees" for i in list_good_species_coredb]
-
-            previous_scenario_check_proportion = previous_scenario.copy()
-            previous_scenario_check_proportion["filtered_total_planned"] = (
-                previous_scenario_check_proportion.apply(
-                    lambda x: x[list_num_trees_suffix].sum(), axis=1
-                )
-            )
-
-            # Create new columns using a lambda function and list comprehension - for enforce also manual list shares above
-            for i in range(len(list_good_species)):
-                species = list_good_species[i]
-                if list_override_proportion == []:
-                    # we will put 0 if there is over planting
-                    previous_scenario_check_proportion[list_proportion_suffix[i]] = (
-                        previous_scenario_check_proportion.apply(
-                            lambda x: (
-                                x[list_num_trees_suffix[i]]
-                                / x["filtered_total_planned"]
-                                if x["filtered_total_planned"] != 0
-                                else 0
-                            ),
-                            axis=1,
-                        )
-                    )
-                else:
-                    # we will put 0 if there is over planting and we will put the specific protected_zone and production proportion override based on index in the list
-                    def cond_prop_zone(row, override_prop_dict):
-                        if row["zone"] in override_prop_dict:
-                            return float(override_prop_dict[row["zone"]]) / 100.00
-                        else:
-                            return 0
-
-                    zone_prop = list_override_proportion[i]
-                    # Apply the function to the DataFrame
-                    previous_scenario_check_proportion[list_proportion_suffix[i]] = (
-                        previous_scenario_check_proportion.apply(
-                            lambda x: cond_prop_zone(x, zone_prop), axis=1
-                        )
-                    )
-
-            # replanting df creation
-            new_replanting_plot_distribution_joined = pd.merge(
-                new_replanting_plot_distribution,
-                previous_scenario_check_proportion[
-                    ["Plot_ID", "year_start"]
-                    + [
-                        col
-                        for col in previous_scenario_check_proportion.columns
-                        if col.endswith("prop")
-                    ]
-                ],
-                left_on=["Plot_ID", "year_start_planted"],
-                right_on=["Plot_ID", "year_start"],
-                how="left",
-            )
-
-            df_replanting_only = new_replanting_plot_distribution_joined[
-                [
-                    col
-                    for col in new_replanting_plot_distribution_joined
-                    if not col.endswith("_num_trees")
                 ]
-            ]
 
-            df_replanting_only = df_replanting_only.copy()
-            for i in list_good_species_coredb:
-                df_replanting_only[i + "_num_trees"] = df_replanting_only.apply(
-                    lambda x: round(x[i + "_prop"] * x["All_trees_need_replanted"], 0),
-                    axis=1,
+                df_replanting_only = df_replanting_only.copy()
+                for i in list_good_species_coredb:
+                    df_replanting_only[i + "_num_trees"] = df_replanting_only.apply(
+                        lambda x: round(x[i + "_prop"] * x["All_trees_need_replanted"], 0),
+                        axis=1,
+                    )
+
+                num_year_replanting_add = num_year_replanting_add
+                df_replanting_only["year_start"] = (
+                    df_replanting_only["year_all_planted"] + num_year_replanting_add
                 )
-
-            num_year_replanting_add = num_year_replanting_add
 
             if conditional_gap_replanting_year == True:
-                print(
-                    "TODO"
-                )  # let's automate later if there is some conditional statement related to replanting gap
+                # let's automate later if there is some conditional statement related to replanting gap
                 # example in inprosula, nursery will give additional gap_year 1 compare to buy seedling
-                df_replanting_only["year_start"] = (
-                    df_replanting_only["year_start_planted"] + num_year_replanting_add
-                )
                 # change above line code later
+
+                list_to_concat = []
+                process_calc = df_replanting_only.copy()
+                for i in range(len(proportion_delay_list)):
+                    process_calc = df_replanting_only.copy()
+                    process_calc['year_start'] = process_calc['year_start'] + [i]
+                    process_calc['All_trees_need_replanted'] = process_calc['All_trees_need_replanted'] * proportion_delay_list[i] / 100
+                    process_calc['All_trees_planned'] = process_calc['All_trees_planned'] * proportion_delay_list[i] / 100
+                    process_calc['num_trees_total'] = process_calc['num_trees_total'] * proportion_delay_list[i] / 100
+
+                    # loop to all the column with endswith _num_trees
+                    for col in process_calc.columns:
+                        if col.endswith("_num_trees"):
+                            process_calc[col] = process_calc[col] * proportion_delay_list[i] / 100
+                    list_to_concat.append(process_calc)
+
+                delayed_df_replanting_only = pd.concat(list_to_concat, ignore_index=True)
+                df_replanting_only = delayed_df_replanting_only
             else:
-                df_replanting_only["year_start"] = (
-                    df_replanting_only["year_start_planted"] + num_year_replanting_add
-                )
+                pass
 
         else:
             df_replanting_only = cleaning_csv_df(pd.read_csv(manual_replanting_plan))
