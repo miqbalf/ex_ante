@@ -358,7 +358,7 @@ def num_tco_years(
         grand_total_row = pd.DataFrame(
             [grand_total_num_trees],
             index=pd.MultiIndex.from_tuples(
-                [("Grand Total", "", "", "", "", "")],
+                [("Grand Total", "", "", "")],
                 names=joined_pivot_num_trees_all.index.names,
             ),
         )
