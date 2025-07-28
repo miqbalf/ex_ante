@@ -2115,6 +2115,7 @@ class ExPostAnalysis:
 
         if earlier_year != 0:
             df_replanting_only['year_start'] = df_replanting_only['year_start'] - earlier_year
+            df_replanting_only['measurement_type'] ='Nr Tree Evidence Expost'  # generalize that the earlier replant, will get tree evidence expected, because we will grouping this
             new_replanting_plot_distribution_finalize = pd.concat(
                     [ex_post_dist_csu, df_replanting_only], ignore_index=True
                 )
@@ -2127,7 +2128,17 @@ class ExPostAnalysis:
             for i in tree_cols:
                 agg_function[i] = 'sum'
 
-            new_replanting_plot_distribution_finalize = new_replanting_plot_distribution_finalize.groupby(['Plot_ID','year_start', 'mu', 'zone','is_replanting','Plot_Name']).agg(agg_function)
+            new_replanting_plot_distribution_finalize['managementUnit'] = new_replanting_plot_distribution_finalize['managementUnit'].fillna(new_replanting_plot_distribution_finalize['mu'])
+            new_replanting_plot_distribution_finalize['mu'] = new_replanting_plot_distribution_finalize['mu'].fillna(new_replanting_plot_distribution_finalize['managementUnit'])
+
+            if is_include_large_tree:
+                column_group = ['Plot_ID','year_start', 'mu','managementUnit', 'zone','is_replanting','Plot_Name','measurement_type']
+            else:
+                column_group = ['Plot_ID','year_start', 'mu','managementUnit', 'zone','is_replanting','Plot_Name']
+
+            new_replanting_plot_distribution_finalize = new_replanting_plot_distribution_finalize.groupby(column_group).agg(agg_function)
+
+            new_replanting_plot_distribution_finalize = new_replanting_plot_distribution_finalize.reset_index()
 
         return new_replanting_plot_distribution_finalize
 
