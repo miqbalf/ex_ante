@@ -998,7 +998,7 @@ class ExAnteCalc(AllometryLibrary):
 
     # now after all the configuration input done, we proceed to the plot calculation, and graph chart, and later with input cooling
     # plot calc
-    def csi_plot_model(self) -> pd.DataFrame:
+    def csi_plot_model(self, monitoring_year=0,num_trees_prev_exante=None, pivot_csu=None) -> pd.DataFrame:
         # run the export csv after model is started running
         self.growth_selected.to_csv(self.gdrive_growth_selected)
 
@@ -1135,15 +1135,18 @@ class ExAnteCalc(AllometryLibrary):
 
         # display(all_df_merged)  # troubleshoot only
 
-        # num_tco_years_run = num_tco_years(
-        #     df_ex_ante=all_df_merged,
-        #     is_save_to_csv=path_file,
-        #     distribution_seedling=self.gdrive_location_seedling,
-        #     override_num_trees_0=self.override_num_trees_0,
-        #     mortality_csu_df=self.mortality_csu_df,
-        # )
-        # display(num_tco_years_run["exante_num_trees_yrs"])
-        # display(num_tco_years_run["exante_tco2e_yrs"])
+        num_tco_years_run = num_tco_years(
+            df_ex_ante=all_df_merged,
+            is_save_to_csv=path_file,
+            distribution_seedling=self.gdrive_location_seedling,
+            override_num_trees_0=self.override_num_trees_0,
+            planting_year=self.config.get('planting_year',0),
+            num_trees_prev_exante=num_trees_prev_exante,
+            current_gap_year=monitoring_year,
+            pivot_csu=pivot_csu
+        )
+        display(num_tco_years_run["exante_num_trees_yrs"])
+        display(num_tco_years_run["exante_tco2e_yrs"])
 
         return all_df_merged
 

@@ -200,7 +200,13 @@ def pop_tco2(df_ex_ante, planting_year=0, delay_year=0):
     # for all the trees just planted (year_start 0) it will be considered as 0
     pivot_df_tco2e[("total_csu_tCO2e_species", planting_year)] = 0
     for i in range(delay_year):
-        pivot_df_tco2e[("total_csu_tCO2e_species", planting_year+i+1)] = 0 # implement delay tco2 if there is no tco2 (large tree measurement)
+        # Define the column name for the current year, which is a multi-index tuple
+        column_name = ("total_csu_tCO2e_species", planting_year + i + 1)
+        
+        # Check if this column does NOT exist in the DataFrame
+        if column_name not in pivot_df_tco2e.columns:
+            # If it doesn't exist, create it and set its value to 0 for all rows
+            pivot_df_tco2e[column_name] = 0
 
     # flatten level for the tco2e
     joined_pivot_tco2e_all = pivot_df_tco2e["total_csu_tCO2e_species"]
@@ -265,7 +271,6 @@ def num_tco_years(
     # mortality_num_trees =
     distribution_seedling_df = expost.updated_exante.csu_seedling
     df_exante = all_df_merged
-    
     '''
 
     df_ex_ante = df_ex_ante.copy()
@@ -307,7 +312,7 @@ def num_tco_years(
         )
 
 
-    df_ex_ante['year'] = df_ex_ante['year'] + base_year
+    df_ex_ante['year'] = df_ex_ante['year'] + planting_year
 
     if large_tree == True: # we will set the tree evidence for num_trees purpose only to get the number of trees in the previous years (year -1) because the algorithm process previously apply year_start delay for tree evidence due to no carbon yet
         df_ex_ante_for_num_trees = df_ex_ante.copy()
@@ -325,7 +330,7 @@ def num_tco_years(
     joined_pivot_tco2e_all=tco2['joined_pivot_tco2e_all']
     exante_tco2e_yrs = tco2['exante_tco2e_yrs']
 
-    if override_num_trees_0 == True:
+    if override_num_trees_0 and (num_trees_prev_exante is not None and not num_trees_prev_exante.empty) and (pivot_csu is not None and not pivot_csu.empty):
         print('selecting override num_trees_0')
         # this is hot fix for overriding from csu species mort. may not use mu (managementUnit) combination yet
         # joined_pivot_num_trees_all = joined_pivot_num_trees_all.reset_index() # Remove this line
