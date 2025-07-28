@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 
-def pop_num_trees(df, seedling_csu, base_year):
+def pop_num_trees(df, seedling_csu, base_year, is_include_all_init_planting=False):
     distribution_seedling_df = seedling_csu
 
     pivot_df_num_trees = pd.pivot_table(
@@ -30,16 +30,22 @@ def pop_num_trees(df, seedling_csu, base_year):
 
     # set the filter based on the dictionary list
     frame_d = pd.DataFrame(None)
-    for year_start, list_plot_is_replanting in year_dict.items():
-        for plotid, is_replanting in list_plot_is_replanting:
-            filtered = df[
-                (df["year"] == year_start + base_year)
-                & (df["Plot_ID_exante"] == plotid)
-                & (df["is_replanting"] == is_replanting)
-            ]
-            frame_d = pd.concat([frame_d, filtered])
 
-    frame_d['num_trees'] = frame_d.apply(lambda x: x['num_trees'] if x['rotation_year']==1 else 0, axis=1)
+    if is_include_all_init_planting:
+        for year_start, list_plot_is_replanting in year_dict.items():
+            for plotid, is_replanting in list_plot_is_replanting:
+                filtered = df[
+                    (df["year"] == year_start + base_year)
+                    & (df["Plot_ID_exante"] == plotid)
+                    & (df["is_replanting"] == is_replanting)
+                ]
+                frame_d = pd.concat([frame_d, filtered])
+
+        frame_d['num_trees'] = frame_d.apply(lambda x: x['num_trees'] if x['rotation_year']==1 else 0, axis=1)
+
+    else: # jut use the num_year 0, as year 0, but no other year_0 in year_start 2, 3 etc
+        frame_d = df[(df['year']==base_year+1) & (df['rotation_year']==1)]
+        frame_d['num_trees'] = frame_d.apply(lambda x: x['num_trees'] if x['rotation_year']==1 else 0, axis=1)
 
     filtered_num_year = frame_d
 
@@ -60,6 +66,9 @@ def pop_num_trees(df, seedling_csu, base_year):
         columns="year",
         aggfunc="sum",  # margins=True
     )
+
+    if is_include_all_init_planting != True:
+        year_dict = {1:[]} # create dummy dict. tp do forloop only to year 1
 
     for k, v in year_dict.items():
         pivot_num_trees_0[("num_trees_adjusted", base_year + k -1)] = pivot_num_trees_0[
