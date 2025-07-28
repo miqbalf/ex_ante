@@ -153,8 +153,8 @@ def pop_num_trees(df, seedling_csu, base_year):
         [
             "year_start",
             "is_replanting",
-            "plotZone",
-            "managementUnit",
+            # "plotZone",
+            # "managementUnit",
             "Plot_ID_exante",
             "species",
         ]
@@ -165,8 +165,8 @@ def pop_num_trees(df, seedling_csu, base_year):
         level=[
             "year_start",
             "is_replanting",
-            "plotZone",
-            "managementUnit",
+            # "plotZone",
+            # "managementUnit",
             "Plot_ID_exante",
             "species",
         ]
