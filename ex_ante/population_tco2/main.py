@@ -203,7 +203,7 @@ def pop_tco2(df_ex_ante):
     grand_total_row = pd.DataFrame(
         [grand_total_tco2],
         index=pd.MultiIndex.from_tuples(
-            [("Grand Total", "", "", "", "", "")],
+            [("Grand Total", "", "", "")],
             names=joined_pivot_tco2e_all.index.names,
         ),
     )
