@@ -24,6 +24,8 @@ from .utils import (
     species_reverse_coredb,
 )
 
+module_path = os.path.dirname(exante.__file__)
+
 def process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_added_zone, adding_prev_mortality_rate=0, 
             override_mortality_replanting = 40, update_species_name={}):
     print(f"check argument here def process_scenarios(old_scenario_exante_toedit, concat_df, new_species_to_be_added_zone = {new_species_to_be_added_zone}, adding_prev_mortality_rate={adding_prev_mortality_rate}, \n "
@@ -264,6 +266,13 @@ class ExPostAnalysis:
         self.exante_tco2e_yrs = pd.DataFrame()
         self.validated_df = pd.DataFrame()
         self.validated_csu_species = pd.DataFrame()
+
+        self.prev_exante_config = config.get('prev_exante_config',None)
+
+        with open(self.prev_exante_config, 'r') as ex_ante_config:
+            self.prev_ex_ante_main_json = json.load(ex_ante_config)
+
+        self.prev_ex_ante_planting_year = self.prev_ex_ante_main_json.get('planting_year',None)
 
         self.update_species_name = {} # for replanting_plan later
 
@@ -810,26 +819,13 @@ class ExPostAnalysis:
         # else:
         #     mortality_csu_df = mortality_csu_df # equal to None if there is no override
 
-         ### variable input for the scenario
-        # accessing the general input variable for the previous version of the ex-ante (before update)
-        location_general_var = os.path.join(
-            module_path, self.config["prev_exante_config"]
-        )
-        import json
-
-        with open(location_general_var, "r") as json_general:
-            conf_general = json.load(json_general)
-            # conf_general is dictionary of prev. ex ante conf
-
-        print("prev ex ante conf: \n", conf_general)
-
-        self.prev_config_exante = conf_general
+        
 
         pop_tco2 = num_tco_years(
             df_ex_ante=df_ex_ante,
             distribution_seedling=distribution_seedling,
             override_num_trees_0=False,
-            planting_year=self.prev_config_exante.get("planting_year",0),
+            planting_year=self.prev_ex_ante_planting_year,
             current_gap_year=0
         )  # default to False because this part using entirely ex-ante for initial comparison
         joined_pivot_tco2e_all = pop_tco2["joined_pivot_tco2e_all"]
@@ -892,10 +888,10 @@ class ExPostAnalysis:
             return plot_id_backup
 
         df_tracking_performance["Nr. Trees Ex-Ante"] = joined_pivot_num_trees_all[
-            cycle_monitoring
+            cycle_monitoring + self.prev_ex_ante_planting_year
         ]
         df_tracking_performance["C02 Ex-Ante"] = joined_pivot_tco2e_all[
-            cycle_monitoring
+            cycle_monitoring + self.prev_ex_ante_planting_year
         ]
         df_tracking_performance = df_tracking_performance.reset_index()
 
@@ -956,7 +952,7 @@ class ExPostAnalysis:
         # starting to build the information using the template from https://docs.google.com/spreadsheets/d/179IilSiwUpoBqZZrkxm1WEGPYT1cA8BroUtMZD5F6HU/edit?gid=389938548#gid=389938548
         df_tracking_performance_exante["TPP Name"] = self.TPP_name
         df_tracking_performance_exante["Project Name"] = self.project_name
-        df_tracking_performance_exante["Year Measured"] = cycle_monitoring
+        df_tracking_performance_exante["Year Measured"] = cycle_monitoring + self.prev_ex_ante_planting_year
 
         df_tracking_performance_exante = df_tracking_performance_exante.rename(
             columns={"species_treeocloud": "species_exante"}
@@ -982,7 +978,7 @@ class ExPostAnalysis:
 
         df_tracking_performance_expost["TPP Name"] = self.TPP_name
         df_tracking_performance_expost["Project Name"] = self.project_name
-        df_tracking_performance_expost["Year Measured"] = cycle_monitoring
+        df_tracking_performance_expost["Year Measured"] = cycle_monitoring + self.prev_ex_ante_planting_year
 
         df_tracking_performance_expost = df_tracking_performance_expost.rename(
             columns={"check_result_data_species_check_manual": "species_expost"}

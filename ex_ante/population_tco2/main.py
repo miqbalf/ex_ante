@@ -414,8 +414,8 @@ def num_tco_years(
         exante_tco2e_yrs.to_csv(f"{is_save_to_csv}_tco2_years.csv")
 
     # debugging
-    display(exante_num_trees_yrs)
-    display(exante_tco2e_yrs)
+    # display(exante_num_trees_yrs)
+    # display(exante_tco2e_yrs)
 
     return {
         "exante_num_trees_yrs": exante_num_trees_yrs,
