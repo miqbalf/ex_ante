@@ -1771,7 +1771,8 @@ class ExPostAnalysis:
         num_year_replanting_add=1,
         is_include_large_tree=False,  # by default we will use no large tree, if there are large tree in expost, please adjust to True
         include_prevnatural_thinning=0,  # this one added and set as default (5%) that we will replant after the previous existing number trees has apply the natural thinning so that we replant trees more
-        use_remaining_year_exante = False
+        use_remaining_year_exante = False,
+        earlier_year = 0
     ):
         '''
         ########### example argument, and description
@@ -2073,6 +2074,7 @@ class ExPostAnalysis:
                     df_replanting_only["year_all_planted"] + num_year_replanting_add
                 )
 
+
             if conditional_gap_replanting_year == True:
                 # let's automate later if there is some conditional statement related to replanting gap
                 # example in inprosula, nursery will give additional gap_year 1 compare to buy seedling
@@ -2110,6 +2112,22 @@ class ExPostAnalysis:
                 lambda x: True if x["is_replanting"] == True else False, axis=1
             )
         )
+
+        if earlier_year != 0:
+            df_replanting_only['year_start'] = df_replanting_only['year_start'] - earlier_year
+            new_replanting_plot_distribution_finalize = pd.concat(
+                    [ex_post_dist_csu, df_replanting_only], ignore_index=True
+                )
+            
+            #merge again and group, to avoid duplication headache (unique combination) - make sure that this following name has the consistent (between plot id and plot name)
+
+            tree_cols = [col for col in new_replanting_plot_distribution_finalize.columns if ('num_trees') in col]
+
+            agg_function = {}
+            for i in tree_cols:
+                agg_function[i] = 'sum'
+
+            new_replanting_plot_distribution_finalize = new_replanting_plot_distribution_finalize.groupby(['Plot_ID','year_start', 'mu', 'zone','is_replanting','Plot_Name']).agg(agg_function)
 
         return new_replanting_plot_distribution_finalize
 
