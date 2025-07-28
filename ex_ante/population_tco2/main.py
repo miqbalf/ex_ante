@@ -26,6 +26,8 @@ def pop_num_trees(df, seedling_csu, base_year):
         else:
             year_dict[year_start] = [entry]
 
+    # print(year_dict) #debug
+
     # set the filter based on the dictionary list
     frame_d = pd.DataFrame(None)
     for year_start, list_plot_is_replanting in year_dict.items():
@@ -41,7 +43,8 @@ def pop_num_trees(df, seedling_csu, base_year):
 
     filtered_num_year = frame_d
 
-
+    # print('filtered_num_year')
+    # display(filtered_num_year)
 
     pivot_num_trees_0 = pd.pivot_table(
         filtered_num_year,
@@ -130,6 +133,9 @@ def pop_num_trees(df, seedling_csu, base_year):
         axis=1, level=1
     )
 
+    # debug
+    # display(joined_pivot_num_trees_all) # this is fine
+
     # will equal to this, but this one is manual creation of year_0,
     # pivot_num_trees_0 = pd.pivot_table(df_ex_ante[df_ex_ante['year']==1], values=['num_trees'], index=['Plot_ID','species'], columns='year', aggfunc='sum')
     # pivot_num_trees_0[('num_trees_adjusted',0)] = pivot_num_trees_0[('num_trees',1)]
@@ -172,9 +178,11 @@ def pop_num_trees(df, seedling_csu, base_year):
         ]
     )
 
+    # display(joined_pivot_num_trees_all) #debug
+
     return joined_pivot_num_trees_all
 
-def pop_tco2(df_ex_ante):
+def pop_tco2(df_ex_ante, base_year=0, planting_year=0):
     # Creating a pivot table, ex_ante adjustment for num_trees and tco2e
     pivot_df_tco2e = pd.pivot_table(
         df_ex_ante,
@@ -208,7 +216,7 @@ def pop_tco2(df_ex_ante):
     grand_total_row = pd.DataFrame(
         [grand_total_tco2],
         index=pd.MultiIndex.from_tuples(
-            [("Grand Total", "", "", "",'','','')],
+            [("Grand Total", "", "", "",'','')],
             names=joined_pivot_tco2e_all.index.names,
         ),
     )
@@ -256,6 +264,10 @@ def num_tco_years(
     df_ex_ante = df_ex_ante.copy()
     base_year = planting_year + current_gap_year
 
+    if distribution_seedling == '' and is_save_to_csv != '':
+        output_main_dir = os.path.dirname(os.path.dirname(is_save_to_csv))
+        distribution_seedling = os.path.join(output_main_dir, f'{os.path.basename(is_save_to_csv)}_distribution_trees_seedling.csv')
+
     distribution_seedling_df = pd.read_csv(distribution_seedling)
 
     distribution_seedling_df["is_replanting"] = distribution_seedling_df.apply(
@@ -273,6 +285,8 @@ def num_tco_years(
     distribution_seedling_df = distribution_seedling_df[
         ["Plot_ID", "is_replanting", "year_start", "managementUnit", "plotZone"]
         ].rename(columns={"Plot_ID": "Plot_ID_exante"})
+    
+    # display(distribution_seedling_df) #debug
 
     if 'managementUnit' in df_ex_ante.columns:
         df_ex_ante = df_ex_ante.rename(columns={'Plot_ID': 'Plot_ID_exante', "zone": "plotZone"})
@@ -296,6 +310,8 @@ def num_tco_years(
         df_ex_ante_for_num_trees = df_ex_ante.copy()
 
     joined_pivot_num_trees_all = pop_num_trees(df_ex_ante_for_num_trees, distribution_seedling_df, base_year)
+    joined_pivot_num_trees_all.columns = joined_pivot_num_trees_all.columns.droplevel(0) # remove unecessary num_trees_adjusted column (level 0)
+    # display(joined_pivot_num_trees_all)
     # update mortality analysis
 
     tco2 = pop_tco2(df_ex_ante=df_ex_ante)
@@ -308,7 +324,6 @@ def num_tco_years(
         # joined_pivot_num_trees_all = joined_pivot_num_trees_all.reset_index() # Remove this line
         unique_index = ["is_replanting", "year_start", "Plot_ID_exante", "species", "managementUnit", "plotZone"]
 
-        joined_pivot_num_trees_all.columns = joined_pivot_num_trees_all.columns.droplevel(0)
         joined_pivot_num_trees_all = joined_pivot_num_trees_all.reset_index()
         joined_pivot_num_trees_all = joined_pivot_num_trees_all.set_index(unique_index)
 
@@ -332,9 +347,24 @@ def num_tco_years(
 
             joined_pivot_num_trees_all = pd.merge(joined_pivot_num_trees_all, num_trees_prev_exante, on=unique_index, how='outer')
 
-            melt_df = pd.melt(pivot_csu,id_vars=["Plot_ID", "is_replanting", "year_start", "managementUnit", "plotZone"], value_vars=[col for col in pivot_csu.columns if col.endswith('_num_trees')])
-            melt_df = melt_df.rename(columns={'Plot_ID':'Plot_ID_exante'})
-            melt_df['species'] = melt_df.apply(lambda x: x['species'].replace('_num_trees',''),axis=1)
+            # melt_df = pd.melt(pivot_csu,id_vars=["Plot_ID", "is_replanting", "year_start", "managementUnit", "plotZone"], value_vars=[col for col in pivot_csu.columns if col.endswith('_num_trees')])
+            # melt_df = melt_df.rename(columns={'Plot_ID':'Plot_ID_exante'})
+            # melt_df['species'] = melt_df.apply(lambda x: x['species'].replace('_num_trees',''),axis=1)
+            # melt_df['value'] = melt_df['value'].astype(float)
+            # melt_df = melt_df.rename(columns={'value': base_year})
+
+            melt_df = pd.melt(
+                pivot_csu,
+                id_vars=["Plot_ID", "is_replanting", "year_start", "managementUnit", "plotZone"],
+                value_vars=[col for col in pivot_csu.columns if col.endswith('_num_trees')],
+                var_name='species' # Name the new column 'species' directly
+            )
+
+            # Rename 'Plot_ID' using the correct dictionary syntax
+            melt_df = melt_df.rename(columns={'Plot_ID': 'Plot_ID_exante'})
+
+            # Clean the species names and rename the 'value' column
+            melt_df['species'] = melt_df['species'].str.replace('_num_trees', '')
             melt_df['value'] = melt_df['value'].astype(float)
             melt_df = melt_df.rename(columns={'value': base_year})
 
@@ -357,7 +387,7 @@ def num_tco_years(
         )
     else:
         # Calculate the grand total for each numeric column
-        grand_total_num_trees = joined_pivot_num_trees_all.sum()
+        grand_total_num_trees = joined_pivot_num_trees_all.sum(numeric_only=True)
 
         # Create a new row with the grand total values and the appropriate index
         grand_total_row = pd.DataFrame(
@@ -367,6 +397,10 @@ def num_tco_years(
                 names=joined_pivot_num_trees_all.index.names,
             ),
         )
+
+        
+    # display(grand_total_row)
+    # display(joined_pivot_num_trees_all)
 
     # Append the grand total row to the DataFrame
     exante_num_trees_yrs = pd.concat([joined_pivot_num_trees_all, grand_total_row])
@@ -378,6 +412,10 @@ def num_tco_years(
     if is_save_to_csv != "":
         exante_num_trees_yrs.to_csv(f"{is_save_to_csv}_num_trees_years.csv")
         exante_tco2e_yrs.to_csv(f"{is_save_to_csv}_tco2_years.csv")
+
+    # debugging
+    display(exante_num_trees_yrs)
+    display(exante_tco2e_yrs)
 
     return {
         "exante_num_trees_yrs": exante_num_trees_yrs,

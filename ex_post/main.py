@@ -810,10 +810,27 @@ class ExPostAnalysis:
         # else:
         #     mortality_csu_df = mortality_csu_df # equal to None if there is no override
 
+         ### variable input for the scenario
+        # accessing the general input variable for the previous version of the ex-ante (before update)
+        location_general_var = os.path.join(
+            module_path, self.config["prev_exante_config"]
+        )
+        import json
+
+        with open(location_general_var, "r") as json_general:
+            conf_general = json.load(json_general)
+            # conf_general is dictionary of prev. ex ante conf
+
+        print("prev ex ante conf: \n", conf_general)
+
+        self.prev_config_exante = conf_general
+
         pop_tco2 = num_tco_years(
             df_ex_ante=df_ex_ante,
             distribution_seedling=distribution_seedling,
             override_num_trees_0=False,
+            planting_year=self.prev_config_exante.get("planting_year",0),
+            current_gap_year=0
         )  # default to False because this part using entirely ex-ante for initial comparison
         joined_pivot_tco2e_all = pop_tco2["joined_pivot_tco2e_all"]
         joined_pivot_num_trees_all = pop_tco2["joined_pivot_num_trees_all"]
@@ -2188,6 +2205,7 @@ class ExPostAnalysis:
         sigmoid_remodel_growth=False,
     ):
 
+        module_path = os.path.dirname(exante.__file__)
         self.update_species_name = update_species_name
 
         import json
@@ -2526,7 +2544,7 @@ class ExPostAnalysis:
         merge_plot_species = filtered_df.copy()
         self.merge_plot_species_cleaned = merge_plot_species
 
-        module_path = os.path.dirname(exante.__file__)
+        
         json_config_relpath = json_config_prev_relpath
         # json_config_relpath = '00_ex_ante_result/00_bll_pool_1_sold/03_t4t/t4t_main.json' # should not a hard-coded
         if using_rel_path:
@@ -2570,6 +2588,8 @@ class ExPostAnalysis:
             # conf_general is dictionary of prev. ex ante conf
 
         print("prev ex ante conf: \n", conf_general)
+
+        self.prev_config_exante = conf_general
 
         # project_name_update = 't4t_updated_expost_20241010'
 
