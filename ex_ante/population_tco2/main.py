@@ -294,7 +294,7 @@ def num_tco_years(
     # update mortality analysis
 
     tco2 = pop_tco2(df_ex_ante=df_ex_ante)
-    joined_pivot_num_trees_all=tco2['joined_pivot_tco2e_all']
+    joined_pivot_tco2e_all=tco2['joined_pivot_tco2e_all']
     exante_tco2e_yrs = tco2['exante_tco2e_yrs']
 
     if override_num_trees_0 == True:
