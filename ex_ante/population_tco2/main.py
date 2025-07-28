@@ -153,8 +153,8 @@ def pop_num_trees(df, seedling_csu, base_year):
         [
             "year_start",
             "is_replanting",
-            # "plotZone",
-            # "managementUnit",
+            "plotZone",
+            "managementUnit",
             "Plot_ID_exante",
             "species",
         ]
@@ -165,8 +165,8 @@ def pop_num_trees(df, seedling_csu, base_year):
         level=[
             "year_start",
             "is_replanting",
-            # "plotZone",
-            # "managementUnit",
+            "plotZone",
+            "managementUnit",
             "Plot_ID_exante",
             "species",
         ]
@@ -179,7 +179,12 @@ def pop_tco2(df_ex_ante):
     pivot_df_tco2e = pd.pivot_table(
         df_ex_ante,
         values=["total_csu_tCO2e_species"],
-        index=["Plot_ID_exante", "species", "is_replanting", "year_start"],
+        index=["year_start",
+            "is_replanting",
+            "plotZone",
+            "managementUnit",
+            "Plot_ID_exante",
+            "species"],
         columns="year",
         aggfunc="sum",
     )
@@ -203,7 +208,7 @@ def pop_tco2(df_ex_ante):
     grand_total_row = pd.DataFrame(
         [grand_total_tco2],
         index=pd.MultiIndex.from_tuples(
-            [("Grand Total", "", "", "")],
+            [("Grand Total", "", "", "",'','','')],
             names=joined_pivot_tco2e_all.index.names,
         ),
     )
@@ -301,7 +306,7 @@ def num_tco_years(
         print('selecting override num_trees_0')
         # this is hot fix for overriding from csu species mort. may not use mu (managementUnit) combination yet
         # joined_pivot_num_trees_all = joined_pivot_num_trees_all.reset_index() # Remove this line
-        unique_index = ["is_replanting", "year_start", "Plot_ID_exante", "species"]
+        unique_index = ["is_replanting", "year_start", "Plot_ID_exante", "species", "managementUnit", "plotZone"]
 
         joined_pivot_num_trees_all.columns = joined_pivot_num_trees_all.columns.droplevel(0)
         joined_pivot_num_trees_all = joined_pivot_num_trees_all.reset_index()
@@ -327,7 +332,7 @@ def num_tco_years(
 
             joined_pivot_num_trees_all = pd.merge(joined_pivot_num_trees_all, num_trees_prev_exante, on=unique_index, how='outer')
 
-            melt_df = pd.melt(pivot_csu,id_vars=['Plot_ID','is_replanting','year_start'], value_vars=[col for col in pivot.columns if col.endswith('_num_trees')])
+            melt_df = pd.melt(pivot_csu,id_vars=["Plot_ID", "is_replanting", "year_start", "managementUnit", "plotZone"], value_vars=[col for col in pivot_csu.columns if col.endswith('_num_trees')])
             melt_df = melt_df.rename(columns={'Plot_ID':'Plot_ID_exante'})
             melt_df['species'] = melt_df.apply(lambda x: x['species'].replace('_num_trees',''),axis=1)
             melt_df['value'] = melt_df['value'].astype(float)
@@ -346,7 +351,7 @@ def num_tco_years(
         grand_total_row = pd.DataFrame(
             [grand_total_num_trees],
             index=pd.MultiIndex.from_tuples(
-                [("Grand Total", "", "", "")],
+                [("Grand Total", "", "", "",'','')],
                 names=joined_pivot_num_trees_all.index.names,
             ),
         )
@@ -358,7 +363,7 @@ def num_tco_years(
         grand_total_row = pd.DataFrame(
             [grand_total_num_trees],
             index=pd.MultiIndex.from_tuples(
-                [("Grand Total", "", "", "")],
+                [("Grand Total", "", "", "",'','')],
                 names=joined_pivot_num_trees_all.index.names,
             ),
         )
