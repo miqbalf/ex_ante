@@ -182,7 +182,7 @@ def pop_num_trees(df, seedling_csu, base_year):
 
     return joined_pivot_num_trees_all
 
-def pop_tco2(df_ex_ante, base_year=0, planting_year=0):
+def pop_tco2(df_ex_ante, planting_year=0, delay_year=0):
     # Creating a pivot table, ex_ante adjustment for num_trees and tco2e
     pivot_df_tco2e = pd.pivot_table(
         df_ex_ante,
@@ -198,7 +198,10 @@ def pop_tco2(df_ex_ante, base_year=0, planting_year=0):
     )
 
     # for all the trees just planted (year_start 0) it will be considered as 0
-    # pivot_df_tco2e[("total_csu_tCO2e_species", 0)] = 0
+    pivot_df_tco2e[("total_csu_tCO2e_species", planting_year)] = 0
+    for i in range(delay_year):
+        pivot_df_tco2e[("total_csu_tCO2e_species", planting_year+i+1)] = 0 # implement delay tco2 if there is no tco2 (large tree measurement)
+
     # flatten level for the tco2e
     joined_pivot_tco2e_all = pivot_df_tco2e["total_csu_tCO2e_species"]
 
@@ -223,6 +226,10 @@ def pop_tco2(df_ex_ante, base_year=0, planting_year=0):
 
     # Append the grand total row to the DataFrame
     exante_tco2e_yrs = pd.concat([joined_pivot_tco2e_all, grand_total_row])
+
+    columns_sort = exante_tco2e_yrs.columns.tolist()
+    columns_sort = [col for col in columns_sort if isinstance(col, str)] + sorted([col for col in columns_sort if isinstance(col, int)])
+    exante_tco2e_yrs = exante_tco2e_yrs[columns_sort]
 
     return {'exante_tco2e_yrs':exante_tco2e_yrs, 'joined_pivot_tco2e_all': joined_pivot_tco2e_all}
 
@@ -314,7 +321,7 @@ def num_tco_years(
     # display(joined_pivot_num_trees_all)
     # update mortality analysis
 
-    tco2 = pop_tco2(df_ex_ante=df_ex_ante)
+    tco2 = pop_tco2(df_ex_ante=df_ex_ante, planting_year=planting_year, delay_year=current_gap_year)
     joined_pivot_tco2e_all=tco2['joined_pivot_tco2e_all']
     exante_tco2e_yrs = tco2['exante_tco2e_yrs']
 
