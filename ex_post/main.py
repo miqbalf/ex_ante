@@ -2622,9 +2622,11 @@ class ExPostAnalysis:
         # because there is no tco2e in this expost, therefore, planting year we will delayed one year (ex-ante always expect tco2e at year 1)
         if all_tree_evidence == True:
             # we will adjust and treat that the tree evidence in annual monitoring as they are just planted, therefore planting year started at max. monitoring year
-            conf_general["planting_year"] = int(
-                self.validated_df["monitoring_date"].max()[:4]
-            )  # make sure the data has monitoring date
+            # conf_general["planting_year"] = int(
+            #     self.validated_df["monitoring_date"].max()[:4]
+            # )  # make sure the data has monitoring date
+            conf_general["planting_year"] = conf_general["planting_year"]  # decided not to use this approach because it will confuse the data. planting year should be the same
+
         else:
             conf_general["planting_year"] = conf_general["planting_year"]
 

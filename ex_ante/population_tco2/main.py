@@ -356,8 +356,12 @@ def num_tco_years(
             num_trees_prev_exante =num_trees_prev_exante.iloc[:-1]
             num_trees_prev_exante = num_trees_prev_exante.reset_index()
             num_trees_prev_exante['year_start'] = num_trees_prev_exante['year_start'].astype(int)
-            num_trees_prev_exante = num_trees_prev_exante[unique_index+ ['0']]
+
+            # display(num_trees_prev_exante)
+            
+            print(num_trees_prev_exante.columns)
             num_trees_prev_exante= num_trees_prev_exante.rename(columns={'0':planting_year})
+            num_trees_prev_exante = num_trees_prev_exante[unique_index+ [str(planting_year)]]
 
             # joined_pivot_num_trees_all[planting_year] = num_trees_prev_exante['0']
             # num_trees_prev_exante = num_trees_prev_exante[unique_index+['0']]
@@ -367,7 +371,7 @@ def num_tco_years(
 
             joined_pivot_num_trees_all = joined_pivot_num_trees_all.reset_index()
 
-            joined_pivot_num_trees_all = pd.merge(joined_pivot_num_trees_all, num_trees_prev_exante, on=unique_index, how='outer')
+            joined_pivot_num_trees_all = pd.merge(joined_pivot_num_trees_all, num_trees_prev_exante[unique_index+[str(planting_year)]], on=unique_index, how='outer')
 
             # melt_df = pd.melt(pivot_csu,id_vars=["Plot_ID", "is_replanting", "year_start", "managementUnit", "plotZone"], value_vars=[col for col in pivot_csu.columns if col.endswith('_num_trees')])
             # melt_df = melt_df.rename(columns={'Plot_ID':'Plot_ID_exante'})
