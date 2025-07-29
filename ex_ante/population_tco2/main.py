@@ -191,8 +191,10 @@ def pop_num_trees(df, seedling_csu, base_year, is_include_all_init_planting=True
 
     return joined_pivot_num_trees_all
 
-def pop_tco2(df_ex_ante, planting_year=0, delay_year=0):
+def pop_tco2(df_ex_ante, planting_year=0, delay_year=0, all_tree_evidence=False):
     # Creating a pivot table, ex_ante adjustment for num_trees and tco2e
+    if all_tree_evidence and delay_year> 0:
+        df_ex_ante['year'] = df_ex_ante['year'] + delay_year
     pivot_df_tco2e = pd.pivot_table(
         df_ex_ante,
         values=["total_csu_tCO2e_species"],
@@ -262,6 +264,7 @@ def num_tco_years(
     num_trees_prev_exante: pd.DataFrame = pd.DataFrame(None),
     pivot_csu: pd.DataFrame = pd.DataFrame(None),
     is_include_all_init_planting = True,
+    all_tree_evidence = False
 ):
     ''' example parameter arg.
     self = expost
@@ -336,7 +339,7 @@ def num_tco_years(
     # display(joined_pivot_num_trees_all)
     # update mortality analysis
 
-    tco2 = pop_tco2(df_ex_ante=df_ex_ante, planting_year=planting_year, delay_year=current_gap_year)
+    tco2 = pop_tco2(df_ex_ante=df_ex_ante, planting_year=planting_year, delay_year=current_gap_year, all_tree_evidence=all_tree_evidence)
     joined_pivot_tco2e_all=tco2['joined_pivot_tco2e_all']
     exante_tco2e_yrs = tco2['exante_tco2e_yrs']
 
