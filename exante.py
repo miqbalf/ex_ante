@@ -998,7 +998,7 @@ class ExAnteCalc(AllometryLibrary):
 
     # now after all the configuration input done, we proceed to the plot calculation, and graph chart, and later with input cooling
     # plot calc
-    def csi_plot_model(self, monitoring_year=0,num_trees_prev_exante=None, pivot_csu=None) -> pd.DataFrame:
+    def csi_plot_model(self, monitoring_year=0,num_trees_prev_exante=None, pivot_csu=None, is_include_all_init_planting=True) -> pd.DataFrame:
         # run the export csv after model is started running
         self.growth_selected.to_csv(self.gdrive_growth_selected)
 
@@ -1143,7 +1143,8 @@ class ExAnteCalc(AllometryLibrary):
             planting_year=self.config.get('planting_year',0),
             num_trees_prev_exante=num_trees_prev_exante,
             current_gap_year=monitoring_year,
-            pivot_csu=pivot_csu
+            pivot_csu=pivot_csu,
+            is_include_all_init_planting=is_include_all_init_planting
         )
         display(num_tco_years_run["exante_num_trees_yrs"])
         display(num_tco_years_run["exante_tco2e_yrs"])

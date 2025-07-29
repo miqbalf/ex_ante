@@ -826,7 +826,8 @@ class ExPostAnalysis:
             distribution_seedling=distribution_seedling,
             override_num_trees_0=False,
             planting_year=self.prev_ex_ante_planting_year,
-            current_gap_year=0
+            current_gap_year=0,
+            is_include_all_init_planting=True
         )  # default to False because this part using entirely ex-ante for initial comparison
         joined_pivot_tco2e_all = pop_tco2["joined_pivot_tco2e_all"]
         joined_pivot_num_trees_all = pop_tco2["joined_pivot_num_trees_all"]
