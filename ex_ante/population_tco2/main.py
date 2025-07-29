@@ -46,13 +46,14 @@ def pop_num_trees(df, seedling_csu, planting_year, is_include_all_init_planting=
         # frame_d['num_trees'] = frame_d.apply(lambda x: x['num_trees'] if x['rotation_year']==1 else 0, axis=1)
 
     else: # just use the num_year 0, as year 0, but no other year_0 in year_start 2, 3 etc
-        frame_d = df[(df['year']==planting_year) & (df['rotation_year']==1)]
+        frame_d = df[(df['year']==planting_year+1) & (df['rotation_year']==1)]
         frame_d['num_trees'] = frame_d.apply(lambda x: x['num_trees'] if x['rotation_year']==1 else 0, axis=1)
 
     filtered_num_year = frame_d
 
     # print('filtered_num_year')
-    # display(filtered_num_year)
+    print('here: ')
+    display(filtered_num_year)
 
     pivot_num_trees_0 = pd.pivot_table(
         filtered_num_year,
@@ -308,16 +309,22 @@ def num_tco_years(
         axis=1,
     )
 
-    distribution_seedling_df = distribution_seedling_df.rename(
-        columns={"mu": "managementUnit", "zone": "plotZone", "Plot_ID": "Plot_ID_exante"}
-        )
-    
+    if 'mu' in distribution_seedling_df.columns and 'managementUnit' not in distribution_seedling_df.columns:
+        distribution_seedling_df = distribution_seedling_df.rename(
+                columns={"mu": "managementUnit"})
+    if 'zone' in distribution_seedling_df.columns and 'plotZone' not in distribution_seedling_df.columns:
+            distribution_seedling_df['plotZone'] = distribution_seedling_df['zone']
+    if 'Plot_ID' in distribution_seedling_df.columns and 'Plot_ID_exante' not in distribution_seedling_df.columns:
+        distribution_seedling_df = distribution_seedling_df.rename(
+                columns={"Plot_ID": "Plot_ID_exante"}
+            )
+        
     list_fields = ["Plot_ID_exante", "is_replanting", "year_start", "managementUnit", "plotZone"]
     if large_tree == True:
         print('LARGE TREE SET TO TRUE')
-        list_fields = ["Plot_ID_exante", "is_replanting", "year_start", "managementUnit", "plotZone",'measurement_type']
         distribution_seedling_df = distribution_seedling_df.copy()
         
+        # distribution_seedling_df = distribution_seedling_df[list_fields]
 
         # Create the two conditions
         condition_1 = distribution_seedling_df['measurement_type'].str.strip() == 'Nr Tree Evidence Expost'
@@ -330,7 +337,12 @@ def num_tco_years(
             distribution_seedling_df['year_start'] - 1,
             distribution_seedling_df['year_start']
         )
-    display(distribution_seedling_df) #debug
+
+        unique_index_csu = ["Plot_ID_exante","is_replanting", "managementUnit", "plotZone", "year_start"]
+
+        dict_agg = {col:'sum' for col in distribution_seedling_df.columns if col.endswith('_num_trees')}
+        distribution_seedling_df = distribution_seedling_df.groupby(unique_index_csu).agg(dict_agg).reset_index()
+    # display(distribution_seedling_df) #debug
 
     distribution_seedling_df = distribution_seedling_df[
         list_fields
@@ -348,7 +360,7 @@ def num_tco_years(
             }
         )
 
-    unique_index_csu = ["Plot_ID_exante","is_replanting", "year_start", "managementUnit", "plotZone"]
+    
 
     df_ex_ante['year'] = df_ex_ante['year'] + planting_year
 
@@ -356,8 +368,7 @@ def num_tco_years(
         df_ex_ante_for_num_trees = df_ex_ante.copy()
         df_ex_ante_for_num_trees['year'] = df_ex_ante_for_num_trees.apply(lambda x: x['year'] -1 if x['measurement_type'] == 'Nr Tree Evidence Expost' and x['is_replanting'] == False and x['year_start'] > 1 else x['year'], axis=1)
         df_ex_ante_for_num_trees['year_start'] = df_ex_ante_for_num_trees.apply(lambda x: x['year_start'] -1 if x['measurement_type'] == 'Nr Tree Evidence Expost' and x['is_replanting'] == False else x['year_start'], axis=1)
-        # dict_agg = {col:'sum' for col in distribution_seedling_df.columns if col.endswith('_num_trees')}
-        # distribution_seedling_df = distribution_seedling_df.groupby(unique_index_csu).agg(dict_agg).reset_index()
+        
 
 
     else:
@@ -427,7 +438,7 @@ def num_tco_years(
             melt_df['value'] = melt_df['value'].astype(float)
             melt_df = melt_df.rename(columns={'value': base_year})
 
-            joined_pivot_num_trees_all = joined_pivot_num_trees_all.drop(columns=[base_year])
+            # joined_pivot_num_trees_all = joined_pivot_num_trees_all.drop(columns=[base_year])
 
             joined_pivot_num_trees_all = pd.merge(joined_pivot_num_trees_all, melt_df, on=unique_index, how='outer')
             joined_pivot_num_trees_all = joined_pivot_num_trees_all.drop(columns=['']) # not sure why we have '' column
