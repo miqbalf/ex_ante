@@ -1,9 +1,11 @@
 import os
 
 import pandas as pd
+import numpy as np
 
-def pop_num_trees(df, seedling_csu, base_year, is_include_all_init_planting=True):
+def pop_num_trees(df, seedling_csu, planting_year, is_include_all_init_planting=True, current_gap_year = 0):
     distribution_seedling_df = seedling_csu
+    display(distribution_seedling_df)
 
     pivot_df_num_trees = pd.pivot_table(
         df,
@@ -35,16 +37,16 @@ def pop_num_trees(df, seedling_csu, base_year, is_include_all_init_planting=True
         for year_start, list_plot_is_replanting in year_dict.items():
             for plotid, is_replanting in list_plot_is_replanting:
                 filtered = df[
-                    (df["year"] == year_start + base_year)
+                    (df["year"] == year_start + planting_year )
                     & (df["Plot_ID_exante"] == plotid)
-                    & (df["is_replanting"] == is_replanting)
+                    & (df["is_replanting"] == is_replanting) & (df['year_start'] == year_start)
                 ]
                 frame_d = pd.concat([frame_d, filtered])
 
-        frame_d['num_trees'] = frame_d.apply(lambda x: x['num_trees'] if x['rotation_year']==1 else 0, axis=1)
+        # frame_d['num_trees'] = frame_d.apply(lambda x: x['num_trees'] if x['rotation_year']==1 else 0, axis=1)
 
-    else: # jut use the num_year 0, as year 0, but no other year_0 in year_start 2, 3 etc
-        frame_d = df[(df['year']==base_year+1) & (df['rotation_year']==1)]
+    else: # just use the num_year 0, as year 0, but no other year_0 in year_start 2, 3 etc
+        frame_d = df[(df['year']==planting_year) & (df['rotation_year']==1)]
         frame_d['num_trees'] = frame_d.apply(lambda x: x['num_trees'] if x['rotation_year']==1 else 0, axis=1)
 
     filtered_num_year = frame_d
@@ -70,13 +72,15 @@ def pop_num_trees(df, seedling_csu, base_year, is_include_all_init_planting=True
     if is_include_all_init_planting != True:
         year_dict = {1:[]} # create dummy dict. tp do forloop only to year 1
 
+    print(pivot_num_trees_0.columns)
+
     for k, v in year_dict.items():
-        pivot_num_trees_0[("num_trees_adjusted", base_year + k -1)] = pivot_num_trees_0[
-            ("num_trees", base_year + k)
+        pivot_num_trees_0[("num_trees_adjusted", planting_year + k -1 )] = pivot_num_trees_0[
+            ("num_trees", planting_year + k)
         ]
 
         # display(pivot_num_trees_0)
-        pivot_num_trees_0 = pivot_num_trees_0.drop(columns=[("num_trees", base_year + k )])
+        pivot_num_trees_0 = pivot_num_trees_0.drop(columns=[("num_trees", planting_year + k )])
 
     # join all the important aggregation columns num_trees over years, by plot and species
     joined_pivot_num_trees_all = pd.merge(
@@ -264,7 +268,7 @@ def num_tco_years(
     num_trees_prev_exante: pd.DataFrame = pd.DataFrame(None),
     pivot_csu: pd.DataFrame = pd.DataFrame(None),
     is_include_all_init_planting = True,
-    all_tree_evidence = False
+    all_tree_evidence = True
 ):
     ''' example parameter arg.
     self = expost
@@ -305,13 +309,33 @@ def num_tco_years(
     )
 
     distribution_seedling_df = distribution_seedling_df.rename(
-        columns={"mu": "managementUnit", "zone": "plotZone"}
+        columns={"mu": "managementUnit", "zone": "plotZone", "Plot_ID": "Plot_ID_exante"}
         )
-    distribution_seedling_df = distribution_seedling_df[
-        ["Plot_ID", "is_replanting", "year_start", "managementUnit", "plotZone"]
-        ].rename(columns={"Plot_ID": "Plot_ID_exante"})
     
-    # display(distribution_seedling_df) #debug
+    list_fields = ["Plot_ID_exante", "is_replanting", "year_start", "managementUnit", "plotZone"]
+    if large_tree == True:
+        print('LARGE TREE SET TO TRUE')
+        list_fields = ["Plot_ID_exante", "is_replanting", "year_start", "managementUnit", "plotZone",'measurement_type']
+        distribution_seedling_df = distribution_seedling_df.copy()
+        
+
+        # Create the two conditions
+        condition_1 = distribution_seedling_df['measurement_type'].str.strip() == 'Nr Tree Evidence Expost'
+        condition_2 = distribution_seedling_df['is_replanting'] == False
+
+        # Use np.where to update the 'year_start' column based on the conditions
+        # np.where(condition, value_if_true, value_if_false)
+        distribution_seedling_df['year_start'] = np.where(
+            condition_1 & condition_2,
+            distribution_seedling_df['year_start'] - 1,
+            distribution_seedling_df['year_start']
+        )
+    display(distribution_seedling_df) #debug
+
+    distribution_seedling_df = distribution_seedling_df[
+        list_fields
+        ]
+    print('first')
 
     if 'managementUnit' in df_ex_ante.columns:
         df_ex_ante = df_ex_ante.rename(columns={'Plot_ID': 'Plot_ID_exante', "zone": "plotZone"})
@@ -324,17 +348,22 @@ def num_tco_years(
             }
         )
 
+    unique_index_csu = ["Plot_ID_exante","is_replanting", "year_start", "managementUnit", "plotZone"]
 
     df_ex_ante['year'] = df_ex_ante['year'] + planting_year
 
     if large_tree == True: # we will set the tree evidence for num_trees purpose only to get the number of trees in the previous years (year -1) because the algorithm process previously apply year_start delay for tree evidence due to no carbon yet
         df_ex_ante_for_num_trees = df_ex_ante.copy()
-        df_ex_ante_for_num_trees['year'] = df_ex_ante_for_num_trees.apply(lambda x: x['year'] -1 if x['measurement_type'] == 'Nr Tree Evidence Expost' and x['is_replanting'] == False else x['year'], axis=1)
+        df_ex_ante_for_num_trees['year'] = df_ex_ante_for_num_trees.apply(lambda x: x['year'] -1 if x['measurement_type'] == 'Nr Tree Evidence Expost' and x['is_replanting'] == False and x['year_start'] > 1 else x['year'], axis=1)
+        df_ex_ante_for_num_trees['year_start'] = df_ex_ante_for_num_trees.apply(lambda x: x['year_start'] -1 if x['measurement_type'] == 'Nr Tree Evidence Expost' and x['is_replanting'] == False else x['year_start'], axis=1)
+        # dict_agg = {col:'sum' for col in distribution_seedling_df.columns if col.endswith('_num_trees')}
+        # distribution_seedling_df = distribution_seedling_df.groupby(unique_index_csu).agg(dict_agg).reset_index()
+
 
     else:
         df_ex_ante_for_num_trees = df_ex_ante.copy()
 
-    joined_pivot_num_trees_all = pop_num_trees(df_ex_ante_for_num_trees, distribution_seedling_df, base_year, is_include_all_init_planting=is_include_all_init_planting)
+    joined_pivot_num_trees_all = pop_num_trees(df_ex_ante_for_num_trees, distribution_seedling_df, planting_year=planting_year, is_include_all_init_planting=is_include_all_init_planting, current_gap_year=current_gap_year)
     joined_pivot_num_trees_all.columns = joined_pivot_num_trees_all.columns.droplevel(0) # remove unecessary num_trees_adjusted column (level 0)
     # display(joined_pivot_num_trees_all)
     # update mortality analysis
@@ -363,7 +392,8 @@ def num_tco_years(
             # display(num_trees_prev_exante)
             
             print(num_trees_prev_exante.columns)
-            num_trees_prev_exante= num_trees_prev_exante.rename(columns={'0':planting_year})
+            num_trees_prev_exante= num_trees_prev_exante.rename(columns={'0':str(planting_year)})
+            print(num_trees_prev_exante.columns)
             num_trees_prev_exante = num_trees_prev_exante[unique_index+ [str(planting_year)]]
 
             # joined_pivot_num_trees_all[planting_year] = num_trees_prev_exante['0']
