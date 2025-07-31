@@ -2229,6 +2229,7 @@ class ExPostAnalysis:
         override_natural_thinning='',
         update_species_name={},
         sigmoid_remodel_growth=False,
+        override_planting_year=''
     ):
 
         module_path = os.path.dirname(exante.__file__)
@@ -2652,6 +2653,9 @@ class ExPostAnalysis:
         # change the location root_folder
         conf_general["root_folder"] = self.output_dir_exante
         root_folder = self.output_dir_exante
+
+        if override_planting_year !='':
+            conf_general['planting_year'] = int(override_planting_year) # need to ensure that this is int
 
         # now check the update
         print("updated ---> ", conf_general)
