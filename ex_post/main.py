@@ -1657,6 +1657,7 @@ class ExPostAnalysis:
             list_ex_ante_growth_final.append(species_df)
 
         ex_ante_growth_final = pd.concat(list_ex_ante_growth_final)
+        ex_ante_growth_final['sigmoid_dbh_cm'] = ex_ante_growth_final['two_point_model_dbh'] # select this optimistic number
         print(ex_ante_growth_final.columns)
         return ex_ante_growth_final
 
