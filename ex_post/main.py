@@ -1458,10 +1458,46 @@ class ExPostAnalysis:
             )
 
         
-        if rename_index_total: # Set index to 'All' for the overall row and append to the pivot table
-            overall_metrics.index = [all_row]
-        
-        pivot_table = pd.concat([pivot_table, overall_metrics])
+        # --- MODIFIED LOGIC STARTS HERE ---
+        if rename_index_total:
+            # This 'True' path is unchanged. It uses the grand total 'overall_metrics'.
+            overall_metrics.index = pd.MultiIndex.from_tuples([all_row])
+            pivot_table = pd.concat([pivot_table, overall_metrics])
+        else:
+            # This 'False' path now generates the species-specific subtotals.
+            
+            # 1. Group by species and aggregate to get one subtotal row per species.
+            species_subtotals = self.df_meas_plot_filtered.groupby(
+                "check_result_data_species_check_manual"
+            ).agg(agg_dict)
+
+            # 2. Flatten the columns to match the main pivot_table's format.
+            species_subtotals.columns = [f"{col[0]}_{col[1]}" for col in species_subtotals.columns]
+
+            # 3. Apply the same post-calculations to the subtotal rows.
+            species_subtotals["age_month_mean"] = (
+                species_subtotals["age_month_mean"].round(0).astype(int)
+            )
+            if large_tree:
+                species_subtotals["growth_cm_per_month"] = (
+                    species_subtotals["dbh_cm_mean"] / species_subtotals["age_month_mean"]
+                )
+                species_subtotals["growth_cm_per_year"] = (
+                    species_subtotals["growth_cm_per_month"] * 12
+                )
+            
+            # 4. Create a special MultiIndex to match the pivot_table's structure.
+            # The first level is '{species}_stat' and the second level is blank.
+            # This is the key step to make your downstream filtering work.
+            subtotal_index = pd.MultiIndex.from_tuples(
+                [(f"{idx}_stat", "") for idx in species_subtotals.index if idx]
+            )
+            species_subtotals = species_subtotals[species_subtotals.index != '']
+            species_subtotals.index = subtotal_index
+
+            # 5. Combine the main pivot table with the new species subtotal rows.
+            pivot_table = pd.concat([pivot_table, species_subtotals])
+        # --- MODIFIED LOGIC ENDS HERE ---
 
         # Reset the index to make the current index a column
         pivot_table = pivot_table.reset_index()
