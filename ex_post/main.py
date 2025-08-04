@@ -1522,7 +1522,7 @@ class ExPostAnalysis:
         return stat_pivot
 
     def analyze_growth(
-        self, name_column_species_model="Tree Species(+origin of allom. formula)"
+        self, name_column_species_model="Tree Species(+origin of allom. formula)", stat_df_year_1 = ''
     ):
         # get the stat and has the sub-total of species
         stats_large_tree_species = self.stat_per_species(scale="mu", large_tree=True, rename_index_total=False)
@@ -1594,6 +1594,17 @@ class ExPostAnalysis:
 
         list_ex_ante_growth_final = []
 
+        if stat_df_year_1 != '':
+            stat_df_year_1 = pd.read_csv(stat_df_year_1)
+            list_species_year_1 = [
+                        f"{i}_stat"
+                        for i in stat_df_year_1[~stat_df_year_1.species_treeo_cloud.isna()].species_treeo_cloud.unique()
+                        if i is not None
+                    ]
+
+            if sorted(list_species) != sorted(list_species_year_1):
+                raise ValueError('Error, the list species before and after the data is not the same, either change the code, or make it consistent between year 1 and year 2 stat data')
+
         for species in ex_ante_growth_add_stat["species_treeocloud"].unique():
             species_df = ex_ante_growth_add_stat[
                 ex_ante_growth_add_stat["species_treeocloud"] == species
@@ -1621,15 +1632,22 @@ class ExPostAnalysis:
             #     species_df=species_df,
             # )
 
+            if stat_df_year_1 != '':
+                dbh_year_1 = float(stat_df_year_1[stat_df_year_1['managementUnit']== species]['growth_cm_per_year'].iloc[0])
+            else:
+                dbh_year_1 = initial_dbh
+
+            dbh_year_2 = initial_dbh * 2
+
             # Call the comparison function with all the necessary information
             species_df = remodel_growth(
-                "DBH", "adj_linear_cm",          # *args: Column names from species_df to plot
+                "DBH", "adj_linear_cm",              # *args: Column names from species_df to plot
                 initial_dbh=initial_dbh,               # For the one-point model
                 inflection_point_guess=inflection_point_guess,      # For the one-point model
-                dbh_year_1=2.1,                # For the two-point model
-                dbh_year_2=3.2,                 # For the two-point model
-                max_dbh=55,                     # Common parameter
-                projected_years=35,             # Common parameter
+                dbh_year_1=dbh_year_1,                # For the two-point model
+                dbh_year_2=dbh_year_2,                 # For the two-point model
+                max_dbh=max_dbh,                     # Common parameter
+                projected_years=35,                 # Common parameter
                 species=species,
                 species_df=species_df
             )
@@ -1639,6 +1657,7 @@ class ExPostAnalysis:
             list_ex_ante_growth_final.append(species_df)
 
         ex_ante_growth_final = pd.concat(list_ex_ante_growth_final)
+        print(ex_ante_growth_final.columns)
         return ex_ante_growth_final
 
     def mortality_analysis(self, list_columns_analysis, list_index_level):
@@ -2285,7 +2304,8 @@ class ExPostAnalysis:
         override_natural_thinning='',
         update_species_name={},
         sigmoid_remodel_growth=False,
-        override_planting_year=''
+        override_planting_year='',
+        stat_df_year_1=''
     ):
 
         module_path = os.path.dirname(exante.__file__)
@@ -2932,7 +2952,7 @@ class ExPostAnalysis:
         self.growth_selected_updated = concat_df_growth
         if all_tree_evidence != True:
             if sigmoid_remodel_growth == True and re_select_growth_data == False:
-                new_growth_calc = self.analyze_growth()
+                new_growth_calc = self.analyze_growth(stat_df_year_1 =stat_df_year_1 )
                 new_growth_calc = new_growth_calc[
                     [name_column_species_growth, "year", "Height", "sigmoid_dbh_cm"]
                 ]
