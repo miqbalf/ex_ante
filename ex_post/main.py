@@ -1319,7 +1319,7 @@ class ExPostAnalysis:
         return df_summary
 
     def stat_all(
-        self, large_tree=True, scale="mu", filter_species=False, species_list=""
+        self, large_tree=True, scale="mu", filter_species=False, species_list="", rename_index_total = True
     ):
         # Validate the 'scale' argument
         # if scale not in ['mu', 'csu']:
@@ -1457,8 +1457,10 @@ class ExPostAnalysis:
                 overall_metrics["growth_cm_per_month"] * 12
             )
 
-        # Set index to 'All' for the overall row and append to the pivot table
-        overall_metrics.index = [all_row]
+        
+        if rename_index_total: # Set index to 'All' for the overall row and append to the pivot table
+            overall_metrics.index = [all_row]
+        
         pivot_table = pd.concat([pivot_table, overall_metrics])
 
         # Reset the index to make the current index a column
@@ -1468,7 +1470,7 @@ class ExPostAnalysis:
         pivot_table = pivot_table.rename(columns=column_renamed)
         return pivot_table
 
-    def stat_per_species(self, large_tree=True, scale="mu"):
+    def stat_per_species(self, large_tree=True, scale="mu", rename_index_total=True):
         df_meas_plot_species_list = self.df_meas_plot[
             "check_result_data_species_check_manual"
         ].unique()
@@ -1486,7 +1488,7 @@ class ExPostAnalysis:
         self, name_column_species_model="Tree Species(+origin of allom. formula)"
     ):
         # get the stat and has the sub-total of species
-        stats_large_tree_species = self.stat_per_species(scale="mu", large_tree=True)
+        stats_large_tree_species = self.stat_per_species(scale="mu", large_tree=True, rename_index_total=False)
 
         # get the unique list of the species
         list_species = [
