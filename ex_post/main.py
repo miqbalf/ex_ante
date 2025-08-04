@@ -1627,7 +1627,7 @@ class ExPostAnalysis:
                 initial_dbh=initial_dbh,               # For the one-point model
                 inflection_point_guess=inflection_point_guess,      # For the one-point model
                 dbh_year_1=1.54,                # For the two-point model
-                dbh_year_2=3,2,                 # For the two-point model
+                dbh_year_2=3.2,                 # For the two-point model
                 max_dbh=55,                     # Common parameter
                 projected_years=35,             # Common parameter
                 species=species,
