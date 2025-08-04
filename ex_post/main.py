@@ -1480,6 +1480,7 @@ class ExPostAnalysis:
                 scale=scale,
                 filter_species=True,
                 species_list=df_meas_plot_species_list,
+                rename_index_total=rename_index_total
         )
             
         return stat_pivot
