@@ -25,7 +25,7 @@ def calibrate_model_from_data(time_points, dbh_points, max_dbh, initial_guess_t0
 
 
 # --- NEW MASTER VISUALIZER FUNCTION ---
-def compare_growth_scenarios(
+def remodel_growth(
     *args: str,
     # Parameters for the one-point model
     initial_dbh: float,

@@ -1622,7 +1622,7 @@ class ExPostAnalysis:
             # )
 
             # Call the comparison function with all the necessary information
-            species_df = compare_growth_scenarios(
+            species_df = remodel_growth(
                 "DBH", "adj_linear_cm",          # *args: Column names from species_df to plot
                 initial_dbh=initial_dbh,               # For the one-point model
                 inflection_point_guess=inflection_point_guess,      # For the one-point model
