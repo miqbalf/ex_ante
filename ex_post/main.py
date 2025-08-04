@@ -1607,17 +1607,34 @@ class ExPostAnalysis:
             inflection_point_guess = species_df[
                 "year"
             ].median()  # Estimated year for inflection point, around mid year will get depleted growth rate, become stagnant
+            
+            
 
-            species_df = remodel_growth(
-                "DBH",
-                "adj_linear_cm",
-                initial_dbh=initial_dbh,
-                max_dbh=max_dbh,
-                inflection_point_guess=inflection_point_guess,
-                projected_years=35,
+            # species_df = remodel_growth(
+            #     "DBH",
+            #     "adj_linear_cm",
+            #     initial_dbh=initial_dbh,
+            #     max_dbh=max_dbh,
+            #     inflection_point_guess=inflection_point_guess,
+            #     projected_years=35,
+            #     species=species,
+            #     species_df=species_df,
+            # )
+
+            # Call the comparison function with all the necessary information
+            species_df = compare_growth_scenarios(
+                "DBH", "adj_linear_cm",          # *args: Column names from species_df to plot
+                initial_dbh=initial_dbh,               # For the one-point model
+                inflection_point_guess=inflection_point_guess,      # For the one-point model
+                dbh_year_1=1.54,                # For the two-point model
+                dbh_year_2=3,2,                 # For the two-point model
+                max_dbh=55,                     # Common parameter
+                projected_years=35,             # Common parameter
                 species=species,
-                species_df=species_df,
+                species_df=species_df
             )
+
+
 
             list_ex_ante_growth_final.append(species_df)
 
