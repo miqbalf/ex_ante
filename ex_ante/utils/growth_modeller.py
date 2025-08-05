@@ -38,6 +38,7 @@ def remodel_growth(
     projected_years: int = 35,
     species: str = None,
     species_df: pd.DataFrame = None,
+    return_full_df=True
 ) -> pd.DataFrame:
     """
     Calculates, plots, and compares two logistic growth models on the same graph:
@@ -110,7 +111,32 @@ def remodel_growth(
     plt.grid(True)
     plt.show()
 
-    display(comparison_df)
+    # display(comparison_df)
+
+    # --- MODIFIED: Step 6: Return the final DataFrame based on user's choice ---
+    if return_full_df and species_df is not None:
+        # MERGE IS NOW INSIDE: Merge new columns back into the original DataFrame
+        print("\n--- Merging projection results back into the original DataFrame ---")
+        
+        # Ensure the input dataframe has a 'year' column if it's not just an index
+        # This makes the merge more robust
+        df_to_merge = species_df.copy()
+        if 'year' not in df_to_merge.columns:
+             df_to_merge['year'] = df_to_merge.index + 1 # Assuming index starts at 0
+
+        final_df = pd.merge(
+            df_to_merge,
+            comparison_df[['year', 'one_point_model_dbh', 'two_point_model_dbh']],
+            on='year',
+            how='left'
+        )
+        display(final_df)
+        return final_df
+    else:
+        # Original behavior: return the smaller comparison dataframe
+        display(comparison_df)
+        return comparison_df
+
     return comparison_df
 
 

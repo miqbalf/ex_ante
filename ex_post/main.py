@@ -1522,7 +1522,7 @@ class ExPostAnalysis:
         return stat_pivot
 
     def analyze_growth(
-        self, name_column_species_model="Tree Species(+origin of allom. formula)", stat_df_year_1 = ''
+        self, name_column_species_model="Tree Species(+origin of allom. formula)", stat_df_year_1 = pd.DataFrame(None)
     ):
         # get the stat and has the sub-total of species
         stats_large_tree_species = self.stat_per_species(scale="mu", large_tree=True, rename_index_total=False)
@@ -1594,8 +1594,8 @@ class ExPostAnalysis:
 
         list_ex_ante_growth_final = []
 
-        if stat_df_year_1 != '':
-            stat_df_year_1 = pd.read_csv(stat_df_year_1)
+        if stat_df_year_1 is not None and not stat_df_year_1.empty:
+            # stat_df_year_1 = pd.read_csv(stat_df_year_1)
             list_species_year_1 = [
                         f"{i}_stat"
                         for i in stat_df_year_1[~stat_df_year_1.species_treeo_cloud.isna()].species_treeo_cloud.unique()
@@ -1632,15 +1632,19 @@ class ExPostAnalysis:
             #     species_df=species_df,
             # )
 
-            if stat_df_year_1 != '':
-                dbh_year_1 = float(stat_df_year_1[stat_df_year_1['managementUnit']== species]['growth_cm_per_year'].iloc[0])
+            # display(species_df)
+
+            if stat_df_year_1 is not None and not stat_df_year_1.empty:
+                print('filtered species: ',species)
+                # display(stat_df_year_1)
+                dbh_year_1 = float(stat_df_year_1[stat_df_year_1['managementUnit']== species+'_stat']['growth_cm_per_year'].iloc[0])
             else:
                 dbh_year_1 = initial_dbh
 
             dbh_year_2 = initial_dbh * 2
 
             # Call the comparison function with all the necessary information
-            species_df = remodel_growth(
+            species_df_new_growth = remodel_growth(
                 "DBH", "adj_linear_cm",              # *args: Column names from species_df to plot
                 initial_dbh=initial_dbh,               # For the one-point model
                 inflection_point_guess=inflection_point_guess,      # For the one-point model
@@ -1652,9 +1656,7 @@ class ExPostAnalysis:
                 species_df=species_df
             )
 
-
-
-            list_ex_ante_growth_final.append(species_df)
+            list_ex_ante_growth_final.append(species_df_new_growth)
 
         ex_ante_growth_final = pd.concat(list_ex_ante_growth_final)
         ex_ante_growth_final['sigmoid_dbh_cm'] = ex_ante_growth_final['two_point_model_dbh'] # select this optimistic number
@@ -2306,7 +2308,7 @@ class ExPostAnalysis:
         update_species_name={},
         sigmoid_remodel_growth=False,
         override_planting_year='',
-        stat_df_year_1=''
+        stat_df_year_1=pd.DataFrame(None)
     ):
 
         module_path = os.path.dirname(exante.__file__)
@@ -2567,7 +2569,8 @@ class ExPostAnalysis:
                     lambda x: (
                         max_age_yr - max(1, round(x["age_month_mean_fixed"] / 12)) + 1
                         if x["measurement_type"] == "Nr Large Tree Expost"
-                        else max_age_yr + self.config["monitoring_year"]
+                        # else max_age_yr + self.config["monitoring_year"] # not to add another year_start (delay)
+                        else max_age_yr
                     ),
                     axis=1,
                 )
