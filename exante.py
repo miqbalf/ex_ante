@@ -42,12 +42,19 @@ import sys
 
 def is_colab():
     """Detects if running in Google Colab"""
-    return 'google.colab' in sys.modules
+    try:
+        import google.colab
+        return True
+    except ImportError:
+        return False
 
 # Initialize Colab if needed
 if is_colab():
-    from google.colab import output
-    output.enable_custom_widget_manager()
+    try:
+        from google.colab import output
+        output.enable_custom_widget_manager()
+    except ImportError:
+        pass  # Not in Colab, continue without Colab-specific features
 
 class AllometryLibrary(AllometryFormulaDB, GrowthModelSpecies):
 
@@ -741,52 +748,60 @@ class ExAnteCalc(AllometryLibrary):
                 plot_csu = pd.DataFrame(columns=list_column_name)
                 print("Step 7: Template DataFrame created.")
                 display(plot_csu)
-
-                # Display the data entry form
-                print("Step 8: Initializing CSUEntryForm...")
-                self.csu_form = CSUEntryForm(plot_csu)
-                print("Step 9: Displaying CSUEntryForm...")
-                self.csu_form.display_form()
-                # print("Step 10: CSUEntryForm displayed.")
-
-                # ========== COLAB-SPECIFIC FIX ==========
-                if is_running_in_colab():
-                    from google.colab import output
-                    output.clear()  # Critical for Colab
-                    
-                    # Display form (simplified for Colab)
-                    display(widgets.VBox([
-                        widgets.HTML("<h4>Data Entry Form</h4>"),
-                        self.csu_form.form,
-                        self.csu_form.output
-                    ]))
-                else:
-                    self.csu_form.display_form()
                 
-                # Create AND DISPLAY button in the same operation
-                self.submit_csu_form_button = widgets.Button(
-                    description="SUBMIT CSU DATA",
-                    button_style='danger',  # Red for visibility
-                    layout=widgets.Layout(width='300px', height='50px')
-                )
-                self.submit_csu_form_button.on_click(self.on_submit_form_csu)
-                
-                if is_running_in_colab():
-                    display(widgets.VBox([
-                        widgets.HTML("<hr>"),
-                        widgets.HTML("<b style='color:red'>COMPLETE THESE STEPS:</b>"),
-                        widgets.HTML("1. Fill out the form above<br>2. Click this button when done"),
-                        self.submit_csu_form_button
-                    ]))
-                else:
-                    display(self.submit_csu_form_button)
-                # ========== END FIX ==========
-
-            
             except Exception as e:
                 print(f"ERROR in on_submit_click: {e}")
                 import traceback
                 traceback.print_exc() # Print full traceback
+                return
+
+        # Display widgets OUTSIDE the output context for better Jupyter compatibility
+        # This ensures widgets render properly in both Colab and Jupyter
+        print("Step 8: Initializing CSUEntryForm...")
+        try:
+            self.csu_form = CSUEntryForm(plot_csu)
+            print("Step 9: Displaying CSUEntryForm...")
+            
+            # Display form (works for both Colab and Jupyter)
+            # IMPORTANT: Display outside of output context
+            self.csu_form.display_form()
+            
+            # Create submit button with clear instructions
+            instructions_html = widgets.HTML(
+                value="<hr style='margin: 20px 0;'>"
+                      "<div style='background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;'>"
+                      "<b style='color: #856404;'>📋 Instructions:</b><br>"
+                      "1. Fill out all fields in the form above<br>"
+                      "2. Click 'Add Row' to add the plot data<br>"
+                      "3. Repeat steps 1-2 for additional plots (if needed)<br>"
+                      "4. Click 'SUBMIT CSU DATA' button below when finished</div>"
+            )
+            
+            self.submit_csu_form_button = widgets.Button(
+                description="✅ SUBMIT CSU DATA",
+                button_style='danger',
+                layout=widgets.Layout(width='350px', height='50px', margin='15px 0')
+            )
+            self.submit_csu_form_button.on_click(self.on_submit_form_csu)
+            
+            # Display instructions and button in a container
+            submit_container = widgets.VBox([
+                instructions_html,
+                widgets.HBox([self.submit_csu_form_button], 
+                           layout=widgets.Layout(justify_content='center'))
+            ], layout=widgets.Layout(padding='10px'))
+            
+            # Display outside output context
+            display(submit_container)
+            
+            # Continue logging inside output context
+            with self.output:
+                print("Step 10: CSUEntryForm and submit button displayed successfully!")
+        except Exception as e:
+            with self.output:
+                print(f"ERROR displaying form: {e}")
+                import traceback
+                traceback.print_exc()
 
     def on_submit_form_csu(self, button):
         """Handles submission of CSU seedling data"""
@@ -798,19 +813,21 @@ class ExAnteCalc(AllometryLibrary):
             self.csu_seedling = self.csu_form.csu_seedling
 
             print(f"CSU Seedling data saved to {self.gdrive_location_seedling}")
-
-            # Generate widgets for the next step
-            self.generate_species_widgets()
             print("Proceeding to widget generation for scenario data.")
+
+        # Generate widgets for the next step OUTSIDE output context
+        self.generate_species_widgets()
 
     def generate_species_widgets(self):
         """Step 3: Generate and display species-specific widgets for zones"""
-        with self.output:
-            # Group max years for each species
-            grouping_max_year = {
-                species: len(self.co2_data_dict[species]) - 1
-                for species in self.unique_species_selected
-            }
+        try:
+            # Do data processing first
+            with self.output:
+                # Group max years for each species
+                grouping_max_year = {
+                    species: len(self.co2_data_dict[species]) - 1
+                    for species in self.unique_species_selected
+                }
 
             # display(self.df_selected)
             # if "production_zone" in self.df_selected:
@@ -867,9 +884,11 @@ class ExAnteCalc(AllometryLibrary):
             # Drop num_trees
             cleaned_list_species = cleaned_list_species.drop(columns=('num_trees'))
 
-            print(cleaned_list_species.index.unique())
+            with self.output:
+                print(f"Found {len(cleaned_list_species.index.unique())} unique zone/replanting combinations")
+                print(f"Combinations: {cleaned_list_species.index.unique()}")
 
-            # Iterate through the unique combinations of the index
+            # Iterate through the unique combinations of the index (outside output context)
             for index_tuple in cleaned_list_species.index.unique():
                 is_replanting, zone = index_tuple
                 variable_name = f"widget_{is_replanting}_{zone}"
@@ -886,31 +905,65 @@ class ExAnteCalc(AllometryLibrary):
                     print(f"Combination {index_tuple} not found in cleaned_list_species.")
                 # print("\n-----------------------------------------------------------------------------------------")
            
+            # Display widgets OUTSIDE the output context for Jupyter compatibility
             forms_ui = []
 
             for var_name in self.list_widget_variable_name:
                 widget_instance = getattr(self, var_name)
+                replanting_text = "Replanting" if var_name.startswith("widget_True") else "Non-Replanting"
+                zone_text = var_name.replace('widget_', '').replace('True_', '').replace('False_', '').replace('_zone', '').replace('_', ' ').title()
                 forms_ui.append(widgets.VBox([
-                    widgets.HTML(f"<h4>Forestry Scenario Form - Replanting {var_name.replace('widget_', '').replace('_zone','').replace('_',' ')} zone</h4>"),
+                    widgets.HTML(f"<h3 style='margin-top: 20px; color: #2E7D32;'>{replanting_text} - {zone_text}</h3>"),
                     widget_instance
-                ]))
-                forms_ui.append(widgets.HTML("<hr>"))
+                ], layout=widgets.Layout(
+                    padding='15px',
+                    border='2px solid #4CAF50',
+                    border_radius='8px',
+                    margin='10px 0'
+                )))
+                forms_ui.append(widgets.HTML("<hr style='margin: 20px 0;'>"))
 
             # Then display the submit button clearly afterward
             self.final_submit_button = widgets.Button(
-                description="Submit Scenario Data",
+                description="✅ Submit Scenario Data",
                 button_style='danger',
-                layout=widgets.Layout(width='300px', height='50px')
+                layout=widgets.Layout(width='350px', height='50px', margin='15px 0')
             )
             self.final_submit_button.on_click(self.on_final_submit_click)
 
-            # Add submit instructions and button
-            forms_ui.append(widgets.HTML("<b style='color:red'>COMPLETE THESE STEPS:</b>"))
-            forms_ui.append(widgets.HTML("1. Fill out the scenario forestry for each species and zone.<br>2. Click this button when done."))
-            forms_ui.append(self.final_submit_button)
+            # Create header and instructions
+            header_html = widgets.HTML(
+                value="<h2 style='color: #1976D2; margin-top: 0;'>🌲 Species Scenario Configuration</h2>"
+                      "<p>Configure forestry scenarios for each species in each zone:</p>"
+            )
+            
+            instructions_html = widgets.HTML(
+                value="<div style='background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107; margin: 15px 0;'>"
+                      "<b style='color: #856404;'>📋 Instructions:</b><br>"
+                      "1. Fill out the scenario forestry parameters for each species and zone above<br>"
+                      "2. Set harvesting cycles, mortality rates, and thinning schedules<br>"
+                      "3. Click 'Submit Scenario Data' button below when finished</div>"
+            )
 
-            # Display everything together
-            display(widgets.VBox(forms_ui))
+            # Add submit instructions and button
+            forms_ui.insert(0, header_html)
+            forms_ui.insert(1, instructions_html)
+            forms_ui.append(widgets.HTML("<hr style='margin: 20px 0;'>"))
+            forms_ui.append(widgets.HTML("<b style='color:red; font-size: 16px;'>Complete your configuration and click the button below:</b>"))
+            forms_ui.append(widgets.HBox([self.final_submit_button], 
+                                       layout=widgets.Layout(justify_content='center', margin='15px 0')))
+
+            # Display everything together OUTSIDE output context
+            display(widgets.VBox(forms_ui, layout=widgets.Layout(padding='20px')))
+            
+            with self.output:
+                print("Species scenario widgets displayed successfully!")
+                
+        except Exception as e:
+            with self.output:
+                print(f"ERROR in generate_species_widgets: {e}")
+                import traceback
+                traceback.print_exc()
 
     def on_final_submit_click(self, button):
         """Triggered when the final submit button is clicked to capture widget data"""

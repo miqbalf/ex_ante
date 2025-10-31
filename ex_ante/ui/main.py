@@ -13,10 +13,16 @@ from IPython.display import display, clear_output
 import traceback # Import for detailed error printing
 
 from ipywidgets import interact, interact_manual, interactive
-from google.colab import output
-output.enable_custom_widget_manager()
 
 from .utils import filter_or_selection, is_running_in_colab
+
+# Only enable Colab widget manager if running in Colab
+if is_running_in_colab():
+    try:
+        from google.colab import output
+        output.enable_custom_widget_manager()
+    except ImportError:
+        pass  # Not in Colab, continue without Colab-specific features
 
 class SelectingScenario(widgets.VBox):
     def __init__(
@@ -392,13 +398,21 @@ class CSUEntryForm:
         self.reset_button = widgets.Button(description="Reset Form")
         self.reset_button.on_click(self.reset_form)
 
-        # Layout the form
+        # Layout the form with better styling
         form_items = list(self.widgets_dict.values()) + [
             self.add_row_button,
             self.reset_button,
         ]
-        print(f"DEBUG [CSUEntryForm]: Total widgets in self.form VBox: {len(form_items)}") # Add this print
-        self.form = widgets.VBox(form_items)
+        print(f"DEBUG [CSUEntryForm]: Total widgets in self.form VBox: {len(form_items)}")
+        
+        # Create form container with padding and styling
+        form_layout = widgets.Layout(
+            width='auto',
+            padding='10px',
+            border='1px solid #ddd',
+            border_radius='5px'
+        )
+        self.form = widgets.VBox(form_items, layout=form_layout)
 
     def _init_colab_settings(self):
         """Initialize Colab-specific settings"""
@@ -521,21 +535,32 @@ class CSUEntryForm:
 
     def display_form(self):
         """
-        Display the form and the output area.
+        Display the form and the output area with improved Jupyter compatibility.
         """
         try:
-            # if is_running_in_colab():
-            #     # Colab-specific display handling
-            #     import IPython
-            #     IPython.display.clear_output()
-            #     IPython.display.display(self.form)
-            #     IPython.display.display(self.output)
-            # else:
-                # # Standard Jupyter display
-                # display(self.form)
-                # display(self.output)
-            display(self.form)
-            display(self.output)
+            # Create a container with header and form
+            header = widgets.HTML(
+                value="<h3 style='margin-top: 0;'>📝 CSU Data Entry Form</h3>"
+                      "<p>Fill in the plot information and species counts below:</p>",
+                layout=widgets.Layout(padding='10px')
+            )
+            
+            # Combine header, form, and output in a single VBox
+            container = widgets.VBox([
+                header,
+                self.form,
+                widgets.HTML("<hr style='margin: 20px 0;'>"),
+                widgets.HTML("<b>Data Preview (updates when you click 'Add Row'):</b>"),
+                self.output
+            ], layout=widgets.Layout(
+                width='auto',
+                padding='15px',
+                border='2px solid #4CAF50',
+                border_radius='8px'
+            ))
+            
+            # Display the container
+            display(container)
                 
         except Exception as e:
             print(f"Error displaying form: {e}")
