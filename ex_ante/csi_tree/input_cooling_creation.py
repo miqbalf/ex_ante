@@ -43,6 +43,7 @@ def input_cooling(
     all_df_input["measurement_id"] = all_df_input.index
 
     all_df_input["num_trees_init"] = all_df_input["num_trees"] 
+    all_df_input['num_trees_survived'] = all_df_input['num_trees_adjusted']  #new implementation for gcs comparison
 
     # planting_year	measurement_year	plot_area_ha	plot_id	species	co2_tree_captured_tonnes	measurement_id	tree_dbh_mm	tree_total_biomass_tonnes
     # max year per plot
