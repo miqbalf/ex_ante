@@ -91,6 +91,7 @@ def input_cooling(
             "year_start",
             "plot_area_ha",
             "num_trees_init",
+            "num_trees_survived",
             "plot_id",
             "species",
             "co2_tree_captured_tonnes",
