@@ -1,4 +1,20 @@
+import os
+import re
+
 import pandas as pd
+
+
+def apply_date_to_csv_path(csv_path: str, current_date: str) -> str:
+    """Insert or replace YYYY-MM-DD in the filename; keep the parent directory."""
+    date_pattern = r"\d{4}-\d{2}-\d{2}"
+    dirname = os.path.dirname(csv_path) or "."
+    basename = os.path.basename(csv_path)
+    if re.search(date_pattern, basename):
+        basename = re.sub(date_pattern, current_date, basename)
+    else:
+        stem, ext = os.path.splitext(basename)
+        basename = f"{current_date}_{stem}{ext}"
+    return os.path.join(dirname, basename)
 
 
 def change_year_int(year):

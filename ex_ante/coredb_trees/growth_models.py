@@ -6,7 +6,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from ..utils.gsheet_downloader import request_read_gsheet
-from ..utils.helper import change_year_int
+from ..utils.helper import apply_date_to_csv_path, change_year_int
 
 # Load the .env file
 load_dotenv()
@@ -52,16 +52,11 @@ class GrowthModelSpecies:
                 "%Y-%m-%d"
             )  # it require the default value or some input has yyyy-mm-dd
 
-            date_pattern = r"\d{4}-\d{2}-\d{2}"
-
-            match = re.search(date_pattern, self.allometry_csv)
-            if match:
-                # Replace existing YYYY-MM-DD with the current date
-                self.growth_csv = re.sub(date_pattern, current_date, self.growth_csv)
-            else:
-                self.growth_csv = f"{current_date}_{self.growth_csv}"
+            self.growth_csv = apply_date_to_csv_path(self.growth_csv, current_date)
 
             print(f"Saving to CSV: {self.growth_csv}")
+
+            os.makedirs(os.path.dirname(self.growth_csv) or ".", exist_ok=True)
             df_30y_cleaned.to_csv(self.growth_csv, index=False)
 
         else:
