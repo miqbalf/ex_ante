@@ -1176,6 +1176,21 @@ class ExAnteCalc(AllometryLibrary):
             axis=1,
         )
 
+        # Ensure measurement_type is present and use technical strings for engine compatibility
+        if "measurement_type" not in all_df_merged.columns:
+            # Map it back from the plot_sum/melted data if missing
+            meas_map = self.melt_plot_species[["Plot_ID", "species", "measurement_type"]].drop_duplicates()
+            all_df_merged = pd.merge(all_df_merged, meas_map, on=["Plot_ID", "species"], how="left")
+        
+        # Normalize to technical strings for num_tco_years logic
+        def technical_meas_type(val):
+            val = str(val or "").strip()
+            if val == "tree_evidence": return "Nr Tree Evidence Expost"
+            if val == "tree_measurement_auto": return "Nr Large Tree Expost"
+            return val
+        
+        all_df_merged["measurement_type"] = all_df_merged["measurement_type"].apply(technical_meas_type)
+
         all_df_merged.to_csv(self.gdrive_raw_output)
 
         # for num_trees_tco2
