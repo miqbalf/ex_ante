@@ -1146,9 +1146,15 @@ class ExAnteCalc(AllometryLibrary):
             )
 
         effective_carbon_delay = 0 if delayed_growth else carbon_delay_years
-        effective_planting_year_baseline = (
-            0 if delayed_growth else add_planting_year_baseline
-        )
+        # num_trees CSV header shift (display only): same rule with or without delayed_growth.
+        if delayed_growth and carbon_delay_years > 0:
+            effective_planting_year_baseline = (
+                add_planting_year_baseline
+                if add_planting_year_baseline
+                else carbon_delay_years
+            )
+        else:
+            effective_planting_year_baseline = add_planting_year_baseline
 
         # run the export csv after model is started running
         if delayed_growth and carbon_delay_years > 0:
@@ -1363,6 +1369,7 @@ class ExAnteCalc(AllometryLibrary):
                     else getattr(self, "monitoring_year", 0) or 0
                 ),
                 all_tree_evidence=getattr(self, "all_tree_evidence", True),
+                delayed_growth=getattr(self, "delayed_growth", False),
             )
             file_input = self.gdrive_input_cs
             file_input = os.path.normpath(file_input)

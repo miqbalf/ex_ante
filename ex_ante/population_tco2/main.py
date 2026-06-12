@@ -511,6 +511,17 @@ def num_tco_years(
         joined_pivot_num_trees_all,
         add_planting_year_baseline,
     )
+    if delayed_growth:
+        # Keep num_trees year columns aligned with tco2e after extended duration / delay.
+        tco2_year_columns = [
+            column
+            for column in exante_tco2e_yrs.columns
+            if _column_year(column) is not None
+        ]
+        if tco2_year_columns:
+            num_trees_for_output = num_trees_for_output.reindex(
+                columns=tco2_year_columns
+            )
     grand_total_num_trees_output = num_trees_for_output.sum(numeric_only=True)
     grand_total_row_output = pd.DataFrame(
         [grand_total_num_trees_output],

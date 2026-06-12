@@ -94,6 +94,7 @@ def input_cooling(
     conversion_tco2=44 / 12,
     delay_year=0,
     all_tree_evidence=True,
+    delayed_growth=False,
 ):
     # input adjustment of GCS calculation, adding all columns from growth data
     all_df_input = all_df_merged.copy()
@@ -154,24 +155,23 @@ def input_cooling(
     all_df_input = all_df_input.copy()
     all_df_input = all_df_input[all_df_input["measurement_year"] <= min_max_per_plot]
 
-    # min_measurement_years
-    list_df_zero = []
-    for i in range(len(min_measurement_years["plot_id"])):
-        plot_id = min_measurement_years["plot_id"][i]
-        plot_area = min_measurement_years["plot_area_ha"][i]
-        min_measurement = min_measurement_years["measurement_year"][i]
-        # print(plot_id)
+    # With delayed_growth, zero years already exist in ex_ante + growth input; do not
+    # inject prefix zero rows or apply summary carbon delay again.
+    if not delayed_growth:
+        list_df_zero = []
+        for i in range(len(min_measurement_years["plot_id"])):
+            plot_id = min_measurement_years["plot_id"][i]
+            plot_area = min_measurement_years["plot_area_ha"][i]
+            min_measurement = min_measurement_years["measurement_year"][i]
 
-        range_iter = (
-            min_measurement - min_measurement_all
-        )  # example if 2025 - 2023, means we will iterate with 2023 and 2024 and add them later
-        for j in range(range_iter):
-            print(plot_id, min_measurement_all + j)
-            df_zero = adding_zero_meas(plot_id, plot_area, min_measurement_all + j)
-            list_df_zero.append(df_zero)
+            range_iter = min_measurement - min_measurement_all
+            for j in range(range_iter):
+                print(plot_id, min_measurement_all + j)
+                df_zero = adding_zero_meas(plot_id, plot_area, min_measurement_all + j)
+                list_df_zero.append(df_zero)
 
-    all_df_input = pd.concat(list_df_zero + [all_df_input], ignore_index=True)
-    all_df_input = _apply_carbon_delay(all_df_input, base_year, delay_year)
+        all_df_input = pd.concat(list_df_zero + [all_df_input], ignore_index=True)
+        all_df_input = _apply_carbon_delay(all_df_input, base_year, delay_year)
     input_gcs = all_df_input[
         [
             "planting_year",
