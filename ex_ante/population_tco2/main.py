@@ -223,10 +223,25 @@ def pop_num_trees(df, seedling_csu, planting_year, is_include_all_init_planting=
 
     return joined_pivot_num_trees_all
 
+def _zero_tco2_delay_window(pivot_df_tco2e, planting_year, delay_year):
+    """Zero planting year and each year in the carbon-delay window."""
+    value_key = "total_csu_tCO2e_species"
+    pivot_df_tco2e[(value_key, planting_year)] = 0
+    if delay_year <= 0:
+        return pivot_df_tco2e
+
+    for year in range(planting_year + 1, planting_year + delay_year + 1):
+        pivot_df_tco2e[(value_key, year)] = 0
+    return pivot_df_tco2e
+
+
 def pop_tco2(df_ex_ante, planting_year=0, delay_year=0, all_tree_evidence=False):
     # Creating a pivot table, ex_ante adjustment for num_trees and tco2e
-    if all_tree_evidence and delay_year> 0:
-        df_ex_ante['year'] = df_ex_ante['year'] + delay_year
+    df_ex_ante = df_ex_ante.copy()
+    # Shift curve forward only for all-tree-evidence; large-tree mode keeps calendar years.
+    if all_tree_evidence and delay_year > 0:
+        df_ex_ante["year"] = df_ex_ante["year"] + delay_year
+
     pivot_df_tco2e = pd.pivot_table(
         df_ex_ante,
         values=["total_csu_tCO2e_species"],
@@ -240,16 +255,10 @@ def pop_tco2(df_ex_ante, planting_year=0, delay_year=0, all_tree_evidence=False)
         aggfunc="sum",
     )
 
-    # for all the trees just planted (year_start 0) it will be considered as 0
-    pivot_df_tco2e[("total_csu_tCO2e_species", planting_year)] = 0
-    for i in range(delay_year):
-        # Define the column name for the current year, which is a multi-index tuple
-        column_name = ("total_csu_tCO2e_species", planting_year + i + 1)
-        
-        # Check if this column does NOT exist in the DataFrame
-        if column_name not in pivot_df_tco2e.columns:
-            # If it doesn't exist, create it and set its value to 0 for all rows
-            pivot_df_tco2e[column_name] = 0
+    # Zero planting year and delay window (overwrite existing columns, not only missing ones).
+    pivot_df_tco2e = _zero_tco2_delay_window(
+        pivot_df_tco2e, planting_year, delay_year
+    )
 
     # flatten level for the tco2e
     joined_pivot_tco2e_all = pivot_df_tco2e["total_csu_tCO2e_species"]
