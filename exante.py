@@ -1232,16 +1232,23 @@ class ExAnteCalc(AllometryLibrary):
         display(num_tco_years_run["exante_num_trees_yrs"])
         display(num_tco_years_run["exante_tco2e_yrs"])
 
+        self.monitoring_year = monitoring_year
+        self.all_tree_evidence = all_tree_evidence
+
         return all_df_merged
 
     def cooling_service(self, all_df_merged=None, use_input_cooling=""):
         if use_input_cooling == "":
+            if all_df_merged is None:
+                raise ValueError("all_df_merged is required to generate input_gcs.")
             # start to create input cooling and generate the result
             self.input_gcs = input_cooling(
                 all_df_merged,
                 self.growth_melt,
                 self.name_column_species_growth,
                 self.conf_general["planting_year"],
+                delay_year=getattr(self, "monitoring_year", 0) or 0,
+                all_tree_evidence=getattr(self, "all_tree_evidence", True),
             )
             file_input = self.gdrive_input_cs
             file_input = os.path.normpath(file_input)

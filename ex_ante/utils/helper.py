@@ -39,6 +39,37 @@ def adding_zero_meas(plot_id, plot_area, meas_year):
     return pd.DataFrame(obj_df)
 
 
+def adding_input_gcs_zero_row(
+    *,
+    plot_id,
+    plot_area_ha,
+    planting_year,
+    measurement_year,
+    species,
+    year_start,
+    is_replanting=False,
+    num_trees_init=0,
+    num_trees_survived=0,
+):
+    return pd.DataFrame(
+        {
+            "planting_year": [planting_year],
+            "measurement_year": [measurement_year],
+            "plot_area_ha": [plot_area_ha],
+            "plot_id": [plot_id],
+            "species": [species],
+            "year_start": [year_start],
+            "is_replanting": [is_replanting],
+            "co2_tree_captured_tonnes": [0],
+            "tree_dbh_mm": [0],
+            "tree_total_biomass_tonnes": [0],
+            "measurement_id": [0],
+            "num_trees_init": [num_trees_init],
+            "num_trees_survived": [num_trees_survived],
+        }
+    )
+
+
 def cleaning_csv_df(df):
     unnamed_columns = [col for col in df.columns if "Unnamed" in col]
     df = df.drop(columns=unnamed_columns, errors="ignore")

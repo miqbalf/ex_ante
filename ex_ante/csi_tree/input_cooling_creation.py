@@ -1,11 +1,99 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from ..utils.helper import adding_zero_meas
+from ..utils.helper import adding_input_gcs_zero_row, adding_zero_meas
+
+
+def _build_carbon_delay_zero_frames(all_df_input, base_year, delay_year):
+    if delay_year <= 0 or all_df_input.empty:
+        return []
+
+    group_cols = [
+        "plot_id",
+        "plot_area_ha",
+        "species",
+        "year_start",
+        "is_replanting",
+        "planting_year",
+        "num_trees_init",
+        "num_trees_survived",
+    ]
+    existing = set(
+        zip(
+            all_df_input["plot_id"],
+            all_df_input["species"],
+            all_df_input["year_start"],
+            all_df_input["is_replanting"],
+            all_df_input["measurement_year"],
+        )
+    )
+
+    zero_frames = []
+    for _, row in (
+        all_df_input[group_cols].dropna(subset=["species"]).drop_duplicates().iterrows()
+    ):
+        initial_year_index = max(int(row["year_start"]) - 1, 0)
+        for delay_index in range(1, delay_year + 1):
+            measurement_year = base_year + initial_year_index + delay_index
+            key = (
+                row["plot_id"],
+                row["species"],
+                row["year_start"],
+                row["is_replanting"],
+                measurement_year,
+            )
+            if key in existing:
+                continue
+            zero_frames.append(
+                adding_input_gcs_zero_row(
+                    plot_id=row["plot_id"],
+                    plot_area_ha=row["plot_area_ha"],
+                    planting_year=row["planting_year"],
+                    measurement_year=measurement_year,
+                    species=row["species"],
+                    year_start=row["year_start"],
+                    is_replanting=row["is_replanting"],
+                    num_trees_init=row["num_trees_init"],
+                    num_trees_survived=row["num_trees_survived"],
+                )
+            )
+            existing.add(key)
+    return zero_frames
+
+
+def _apply_carbon_delay(all_df_input, base_year, delay_year, all_tree_evidence):
+    if not all_tree_evidence or delay_year <= 0:
+        return all_df_input
+
+    all_df_input = all_df_input.copy()
+    all_df_input["measurement_year"] = all_df_input["measurement_year"] + delay_year
+
+    zero_mask = all_df_input["measurement_year"] <= base_year + delay_year
+    for column in (
+        "co2_tree_captured_tonnes",
+        "tree_dbh_mm",
+        "tree_total_biomass_tonnes",
+    ):
+        all_df_input.loc[zero_mask, column] = 0
+
+    delay_zero_frames = _build_carbon_delay_zero_frames(
+        all_df_input, base_year, delay_year
+    )
+    if delay_zero_frames:
+        all_df_input = pd.concat(
+            [all_df_input] + delay_zero_frames, ignore_index=True
+        )
+    return all_df_input
 
 
 def input_cooling(
-    all_df_merged, growth_melt, name_species_growth, base_year, conversion_tco2=44 / 12
+    all_df_merged,
+    growth_melt,
+    name_species_growth,
+    base_year,
+    conversion_tco2=44 / 12,
+    delay_year=0,
+    all_tree_evidence=True,
 ):
     # input adjustment of GCS calculation, adding all columns from growth data
     all_df_input = all_df_merged.copy()
@@ -83,6 +171,9 @@ def input_cooling(
             list_df_zero.append(df_zero)
 
     all_df_input = pd.concat(list_df_zero + [all_df_input], ignore_index=True)
+    all_df_input = _apply_carbon_delay(
+        all_df_input, base_year, delay_year, all_tree_evidence
+    )
     input_gcs = all_df_input[
         [
             "planting_year",
