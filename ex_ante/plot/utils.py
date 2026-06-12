@@ -1,5 +1,7 @@
 import pandas as pd
 
+from ex_ante.utils.helper import ensure_measurement_type_column
+
 
 def calc_plot_csu(gdrive_location_seedling, override_avg_tree_perha=''):
     # read the csv
@@ -7,6 +9,7 @@ def calc_plot_csu(gdrive_location_seedling, override_avg_tree_perha=''):
     # if we want to import back from pandas object (previously exported to csv), we need to make sure this column is not included
     unnamed_columns = [col for col in plot_sum.columns if "Unnamed" in col]
     plot_sum = plot_sum.drop(columns=unnamed_columns, errors="ignore")
+    plot_sum = ensure_measurement_type_column(plot_sum)
     # return plot_sum
 
     # print('displaying the proportion, seedling distribution from percentage sharing option')

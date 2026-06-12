@@ -18,7 +18,11 @@ from ex_ante.population_tco2.main import num_tco_years
 from ex_ante.ui.main import CSUEntryForm, Project_Setting_Species, SelectingScenario
 from ex_ante.ui.utils import is_running_in_colab
 from ex_ante.utils.calc_formula_string import calc_biomass_formula
-from ex_ante.utils.helper import adding_zero_meas, cleaning_csv_df
+from ex_ante.utils.helper import (
+    adding_zero_meas,
+    cleaning_csv_df,
+    ensure_measurement_type_column,
+)
 from ex_ante.utils.max_density import get_max_density
 from IPython.display import display, HTML
 from ipywidgets import interact, interact_manual, interactive, widgets
@@ -1178,18 +1182,22 @@ class ExAnteCalc(AllometryLibrary):
 
         # Ensure measurement_type is present and use technical strings for engine compatibility
         if "measurement_type" not in all_df_merged.columns:
-            # Map it back from the plot_sum/melted data if missing
-            meas_map = self.melt_plot_species[["Plot_ID", "species", "measurement_type"]].drop_duplicates()
-            all_df_merged = pd.merge(all_df_merged, meas_map, on=["Plot_ID", "species"], how="left")
-        
-        # Normalize to technical strings for num_tco_years logic
-        def technical_meas_type(val):
-            val = str(val or "").strip()
-            if val == "tree_evidence": return "Nr Tree Evidence Expost"
-            if val == "tree_measurement_auto": return "Nr Large Tree Expost"
-            return val
-        
-        all_df_merged["measurement_type"] = all_df_merged["measurement_type"].apply(technical_meas_type)
+            if "measurement_type" in self.melt_plot_species.columns:
+                meas_map = self.melt_plot_species[
+                    ["Plot_ID", "species", "measurement_type"]
+                ].drop_duplicates()
+                all_df_merged = pd.merge(
+                    all_df_merged, meas_map, on=["Plot_ID", "species"], how="left"
+                )
+            elif "measurement_type" in self.plot_sum.columns:
+                meas_map = self.plot_sum[
+                    ["Plot_ID", "measurement_type"]
+                ].drop_duplicates()
+                all_df_merged = pd.merge(
+                    all_df_merged, meas_map, on=["Plot_ID"], how="left"
+                )
+
+        all_df_merged = ensure_measurement_type_column(all_df_merged)
 
         all_df_merged.to_csv(self.gdrive_raw_output)
 

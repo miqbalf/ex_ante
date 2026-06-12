@@ -3,6 +3,9 @@ import re
 
 import pandas as pd
 
+TREE_EVIDENCE_MEASUREMENT = "Nr Tree Evidence Expost"
+LARGE_TREE_MEASUREMENT = "Nr Large Tree Expost"
+
 
 def apply_date_to_csv_path(csv_path: str, current_date: str) -> str:
     """Insert or replace YYYY-MM-DD in the filename; keep the parent directory."""
@@ -40,3 +43,21 @@ def cleaning_csv_df(df):
     unnamed_columns = [col for col in df.columns if "Unnamed" in col]
     df = df.drop(columns=unnamed_columns, errors="ignore")
     return df
+
+
+def technical_measurement_type(value):
+    text = str(value or "").strip()
+    if text in ("tree_evidence", TREE_EVIDENCE_MEASUREMENT):
+        return TREE_EVIDENCE_MEASUREMENT
+    if text in ("tree_measurement_auto", LARGE_TREE_MEASUREMENT):
+        return LARGE_TREE_MEASUREMENT
+    if text:
+        return text
+    return TREE_EVIDENCE_MEASUREMENT
+
+
+def ensure_measurement_type_column(df, column="measurement_type"):
+    if column in df.columns:
+        df[column] = df[column].apply(technical_measurement_type)
+        return df
+    return df.assign(**{column: TREE_EVIDENCE_MEASUREMENT})

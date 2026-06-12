@@ -1,7 +1,9 @@
 import os
 
-import pandas as pd
 import numpy as np
+import pandas as pd
+
+from ex_ante.utils.helper import ensure_measurement_type_column
 
 def pop_num_trees(df, seedling_csu, planting_year, is_include_all_init_planting=True, current_gap_year = 0):
     distribution_seedling_df = seedling_csu
@@ -299,6 +301,8 @@ def num_tco_years(
         distribution_seedling = os.path.join(output_main_dir, f'{os.path.basename(is_save_to_csv)}_distribution_trees_seedling.csv')
 
     distribution_seedling_df = pd.read_csv(distribution_seedling)
+
+    distribution_seedling_df = ensure_measurement_type_column(distribution_seedling_df)
 
     distribution_seedling_df["is_replanting"] = distribution_seedling_df.apply(
         lambda x: (
