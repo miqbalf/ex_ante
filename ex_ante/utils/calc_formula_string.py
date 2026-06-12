@@ -1,5 +1,6 @@
 import ast
 import math
+import re
 
 
 ALLOWED_FORMULA_FUNCTIONS = {
@@ -14,10 +15,12 @@ ALLOWED_FORMULA_NAMES = set(ALLOWED_FORMULA_FUNCTIONS) | {"e", "pi"}
 
 
 def calc_biomass_formula(ttb_formula, wd, dbh, height, text_only=False):
+    formula_fix = str(ttb_formula or "").strip().strip('"').strip("'")
+    if formula_fix.upper().startswith("TTB="):
+        formula_fix = formula_fix[4:].strip()
 
     formula_fix = (
-        ttb_formula.replace("TTB=", "")
-        .replace("DBH", str(dbh))
+        formula_fix.replace("DBH", str(dbh))
         .replace("HEIGHT", str(height))
         .replace("WD", str(wd))
         .replace("Math.", "")
@@ -26,6 +29,7 @@ def calc_biomass_formula(ttb_formula, wd, dbh, height, text_only=False):
         .replace("LN(", "log(")
         .replace("ln(", "log(")
     )
+    formula_fix = re.sub(r"\s+", " ", formula_fix).strip()
 
     if "nan" in formula_fix:
         return None
