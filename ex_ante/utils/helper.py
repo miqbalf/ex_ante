@@ -94,13 +94,24 @@ def ensure_measurement_type_column(df, column="measurement_type"):
     return df.assign(**{column: TREE_EVIDENCE_MEASUREMENT})
 
 
+def _first_growth_year(group):
+    """First rotation year with measurable growth (skip leading zeros in source)."""
+    dbh = group["DBH"].astype(float).fillna(0)
+    height = group["Height"].astype(float).fillna(0)
+    active = group[(dbh > 0) | (height > 0)]
+    if not active.empty:
+        return int(active["year"].min())
+    return int(group["year"].min())
+
+
 def apply_delayed_growth_to_growth_df(growth_df, delay_years, species_col):
     """
-    Rewrite growth input: years 1..delay_years are zero, then shift the original
-    curve forward. Tail extends by delay_years so the full original curve is kept.
+    Rewrite growth input: exactly delay_years rows at the start are zero, then the
+    original growth curve (from its first non-zero year) is placed without repeating
+    the source's leading zero years.
 
-    Example delay=2, original years 1-30 -> output years 1-32:
-    years 1-2 = 0; year 3 = original year 1; ...; year 32 = original year 30.
+    Example delay=2, original years 1-30 (years 1-3 are DBH=0, growth from year 4):
+    output years 1-2 = 0; year 3 = original year 4; ...; tail extends by delay_years.
     """
     if delay_years <= 0 or growth_df is None or growth_df.empty:
         return growth_df
@@ -113,10 +124,10 @@ def apply_delayed_growth_to_growth_df(growth_df, delay_years, species_col):
     parts = []
     for species, group in growth_df.groupby(species_col, sort=False):
         group = group.sort_values("year").copy()
-        min_year = int(group["year"].min())
         max_year = int(group["year"].max())
-        shift_amount = delay_years - (min_year - 1)
-        target_max_year = max_year + delay_years
+        first_growth_year = _first_growth_year(group)
+        year_offset = first_growth_year - 1
+        target_max_year = delay_years + (max_year - first_growth_year + 1)
         source_by_year = group.set_index("year")
 
         rows = []
@@ -126,15 +137,13 @@ def apply_delayed_growth_to_growth_df(growth_df, delay_years, species_col):
                 row["DBH"] = 0.0
                 row["Height"] = 0.0
             else:
-                source_year = year - shift_amount
+                source_year = (year - delay_years) + year_offset
                 if source_year in source_by_year.index:
                     source = source_by_year.loc[source_year]
+                    row["DBH"] = float(source["DBH"])
+                    row["Height"] = float(source["Height"])
                 elif source_year > max_year:
                     source = source_by_year.loc[max_year]
-                else:
-                    # Gap before first source year stays at zero growth.
-                    source = None
-                if source is not None:
                     row["DBH"] = float(source["DBH"])
                     row["Height"] = float(source["Height"])
                 else:

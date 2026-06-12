@@ -677,6 +677,14 @@ class ExAnteCalc(AllometryLibrary):
             self.growth_selected = cleaning_csv_df(
                 pd.read_csv(self.gdrive_growth_selected)
             )
+            if hasattr(self, "growth_melt") and self.growth_melt is not None:
+                self._growth_selected_baseline = self.growth_melt[
+                    self.growth_melt[self.name_column_species_growth].isin(
+                        self.df_tree_selected[self.name_column_species_allo].unique()
+                    )
+                ].copy()
+            else:
+                self._growth_selected_baseline = self.growth_selected.copy()
         print("Loaded existing allometry and growth data.")
         display(self.df_tree_selected)
         display(self.growth_selected)
@@ -1013,6 +1021,7 @@ class ExAnteCalc(AllometryLibrary):
                 self.unique_species_selected
             )
         ]
+        self._growth_selected_baseline = self.growth_selected.copy()
         # self.growth_selected.to_csv(self.gdrive_growth_selected) # to avoid re-update the growth selected on initial model (expost update scheme) we will move this to the outside in method not in init
         print("Growth data selected:")
         display(self.growth_selected)
@@ -1102,8 +1111,11 @@ class ExAnteCalc(AllometryLibrary):
 
         if delayed_growth and carbon_delay_years > 0:
             original_duration = int(self.conf_general.get("duration_project", 30))
+            growth_baseline = getattr(
+                self, "_growth_selected_baseline", self.growth_selected
+            )
             self.growth_selected = apply_delayed_growth_to_growth_df(
-                self.growth_selected,
+                growth_baseline.copy(),
                 carbon_delay_years,
                 self.name_column_species_growth,
             )
