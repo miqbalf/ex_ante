@@ -307,6 +307,7 @@ def num_tco_years(
     is_include_all_init_planting = True,
     all_tree_evidence = True,
     add_planting_year_baseline: int = 0,
+    delayed_growth: bool = False,
 ):
     ''' example parameter arg.
     self = expost

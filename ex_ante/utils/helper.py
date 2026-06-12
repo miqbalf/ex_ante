@@ -92,3 +92,41 @@ def ensure_measurement_type_column(df, column="measurement_type"):
         df[column] = df[column].apply(technical_measurement_type)
         return df
     return df.assign(**{column: TREE_EVIDENCE_MEASUREMENT})
+
+
+def apply_delayed_growth_to_growth_df(growth_df, delay_years, species_col):
+    """
+    Prepend zero-growth years and shift the growth curve forward.
+
+    Example: original growth from year 2, delay_years=2 ->
+    years 1-2 are DBH/Height 0, original year 2 moves to year 3.
+    Standard case (growth from year 1): years 1-2 are 0, original year 1 moves to year 3.
+    """
+    if delay_years <= 0 or growth_df is None or growth_df.empty:
+        return growth_df
+
+    if species_col not in growth_df.columns:
+        raise ValueError(f"Species column '{species_col}' not found in growth dataframe.")
+    if "year" not in growth_df.columns:
+        raise ValueError("Growth dataframe must include a 'year' column.")
+
+    parts = []
+    for species, group in growth_df.groupby(species_col, sort=False):
+        group = group.sort_values("year").copy()
+        min_year = int(group["year"].min())
+        shift_amount = delay_years - (min_year - 1)
+
+        zero_rows = pd.DataFrame(
+            {
+                species_col: [species] * delay_years,
+                "year": list(range(1, delay_years + 1)),
+                "DBH": [0.0] * delay_years,
+                "Height": [0.0] * delay_years,
+            }
+        )
+        shifted = group.copy()
+        shifted["year"] = shifted["year"] + shift_amount
+        parts.append(pd.concat([zero_rows, shifted], ignore_index=True))
+
+    delayed = pd.concat(parts, ignore_index=True)
+    return delayed.sort_values([species_col, "year"]).reset_index(drop=True)

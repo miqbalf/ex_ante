@@ -20,6 +20,7 @@ from ex_ante.ui.utils import is_running_in_colab
 from ex_ante.utils.calc_formula_string import calc_biomass_formula
 from ex_ante.utils.helper import (
     adding_zero_meas,
+    apply_delayed_growth_to_growth_df,
     cleaning_csv_df,
     ensure_measurement_type_column,
 )
@@ -246,7 +247,9 @@ class AllometryLibrary(AllometryFormulaDB, GrowthModelSpecies):
         return tco2_per_tree_year
 
     # instead of getting biomas per year (prev. jupyter), now we will focus on the tc20 per year series in this method
-    def override_tco2_series(self, df_allometry, df_growth) -> pd.DataFrame:
+    def override_tco2_series(
+        self, df_allometry, df_growth, keep_zero_growth_years=False
+    ) -> pd.DataFrame:
         conversion_tco2 = self.conversion_tco2
         biomass_per_tree_year = pd.merge(
             df_allometry,
@@ -258,6 +261,9 @@ class AllometryLibrary(AllometryFormulaDB, GrowthModelSpecies):
 
         biomass_per_tree_year["DBH"] = (
             biomass_per_tree_year["DBH"].astype(float).fillna(0)
+        )
+        biomass_per_tree_year["Height"] = (
+            biomass_per_tree_year["Height"].astype(float).fillna(0)
         )
         biomass_per_tree_year["TTB_value_pertree_ton"] = biomass_per_tree_year.apply(
             lambda x: calc_biomass_formula(
@@ -272,9 +278,19 @@ class AllometryLibrary(AllometryFormulaDB, GrowthModelSpecies):
         biomass_per_tree_year = biomass_per_tree_year.dropna(
             subset=["TTB_value_pertree_ton"]
         )
-        biomass_per_tree_year = biomass_per_tree_year[
-            biomass_per_tree_year["TTB_value_pertree_ton"] != 0
-        ]
+        if keep_zero_growth_years:
+            zero_growth_mask = (biomass_per_tree_year["DBH"] == 0) & (
+                biomass_per_tree_year["Height"] == 0
+            )
+            biomass_per_tree_year.loc[zero_growth_mask, "TTB_value_pertree_ton"] = 0
+            biomass_per_tree_year = biomass_per_tree_year[
+                (biomass_per_tree_year["TTB_value_pertree_ton"] != 0)
+                | zero_growth_mask
+            ]
+        else:
+            biomass_per_tree_year = biomass_per_tree_year[
+                biomass_per_tree_year["TTB_value_pertree_ton"] != 0
+            ]
         tco2_per_tree_year = biomass_per_tree_year.copy()
         tco2_per_tree_year["tco2_value_pertree"] = (
             tco2_per_tree_year["TTB_value_pertree_ton"] * 0.47 * (conversion_tco2)
@@ -1063,7 +1079,43 @@ class ExAnteCalc(AllometryLibrary):
         is_include_all_init_planting=True,
         all_tree_evidence=True,
         add_planting_year_baseline=0,
+        delayed_growth=False,
     ) -> pd.DataFrame:
+        carbon_delay_years = int(monitoring_year or 0)
+        self.delayed_growth = delayed_growth
+
+        if delayed_growth and carbon_delay_years > 0:
+            self.growth_selected = apply_delayed_growth_to_growth_df(
+                self.growth_selected,
+                carbon_delay_years,
+                self.name_column_species_growth,
+            )
+            self.growth_melt = self.growth_selected.copy()
+            extended_duration = int(self.conf_general.get("duration_project", 30)) + (
+                carbon_delay_years
+            )
+            self.conf_general["duration_project"] = extended_duration
+            if hasattr(self, "config") and isinstance(self.config, dict):
+                self.config["duration_project"] = extended_duration
+
+            self.co2_data_dict = self._co2_data(
+                self.override_tco2_series(
+                    self.df_unique_species,
+                    self.growth_selected,
+                    keep_zero_growth_years=True,
+                ),
+                self.name_column_species_allo,
+            )
+            self.df_tco2_selected = self.get_selected_co2(
+                self.co2_data_dict, self.unique_species_selected
+            )
+            print(
+                f"delayed_growth=True: prepended {carbon_delay_years} zero year(s), "
+                f"extended duration_project to {extended_duration}"
+            )
+
+        effective_carbon_delay = 0 if delayed_growth else carbon_delay_years
+
         # run the export csv after model is started running
         self.growth_selected.to_csv(self.gdrive_growth_selected)
 
@@ -1231,12 +1283,13 @@ class ExAnteCalc(AllometryLibrary):
             override_num_trees_0=self.override_num_trees_0,
             planting_year=self.config.get('planting_year',0),
             num_trees_prev_exante=num_trees_prev_exante,
-            current_gap_year=monitoring_year,
+            current_gap_year=effective_carbon_delay,
             pivot_csu=pivot_csu,
             is_include_all_init_planting=is_include_all_init_planting,
             all_tree_evidence=all_tree_evidence,
             large_tree=large_tree,
             add_planting_year_baseline=add_planting_year_baseline,
+            delayed_growth=delayed_growth,
         )
         display(num_tco_years_run["exante_num_trees_yrs"])
         display(num_tco_years_run["exante_tco2e_yrs"])
@@ -1256,7 +1309,11 @@ class ExAnteCalc(AllometryLibrary):
                 self.growth_melt,
                 self.name_column_species_growth,
                 self.conf_general["planting_year"],
-                delay_year=getattr(self, "monitoring_year", 0) or 0,
+                delay_year=(
+                    0
+                    if getattr(self, "delayed_growth", False)
+                    else getattr(self, "monitoring_year", 0) or 0
+                ),
                 all_tree_evidence=getattr(self, "all_tree_evidence", True),
             )
             file_input = self.gdrive_input_cs
