@@ -1086,17 +1086,20 @@ class ExAnteCalc(AllometryLibrary):
         self.delayed_growth = delayed_growth
 
         if delayed_growth and carbon_delay_years > 0:
+            original_duration = int(self.conf_general.get("duration_project", 30))
             self.growth_selected = apply_delayed_growth_to_growth_df(
                 self.growth_selected,
                 carbon_delay_years,
                 self.name_column_species_growth,
+                extend_tail_years=carbon_delay_years,
             )
             self.growth_melt = self.growth_selected.copy()
-            extended_duration = int(self.conf_general.get("duration_project", 30)) + (
-                carbon_delay_years
-            )
+
+            extended_duration = original_duration + carbon_delay_years
+            self.conf_general["harvest_duration_project"] = original_duration
             self.conf_general["duration_project"] = extended_duration
             if hasattr(self, "config") and isinstance(self.config, dict):
+                self.config["harvest_duration_project"] = original_duration
                 self.config["duration_project"] = extended_duration
 
             self.co2_data_dict = self._co2_data(
@@ -1111,8 +1114,9 @@ class ExAnteCalc(AllometryLibrary):
                 self.co2_data_dict, self.unique_species_selected
             )
             print(
-                f"delayed_growth=True: prepended {carbon_delay_years} zero year(s), "
-                f"extended duration_project to {extended_duration}"
+                f"delayed_growth=True: rewrote growth input with {carbon_delay_years} "
+                f"zero year(s); duration_project {original_duration} -> "
+                f"{extended_duration}; harvest cycle kept at {original_duration}"
             )
 
         effective_carbon_delay = 0 if delayed_growth else carbon_delay_years

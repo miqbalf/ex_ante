@@ -66,6 +66,9 @@ class CSIExante:
         self.config = config
         self.input_scenario_species = input_scenario_species
         self.duration_project = config["duration_project"]
+        self.harvest_duration_project = config.get(
+            "harvest_duration_project", self.duration_project
+        )
         self.gap_harvest = config["gap_harvest"]
         self.df_tco2_selected = df_tco2_selected
 
@@ -186,7 +189,7 @@ class CSIExante:
                 a = 1
                 b = 0  # Reset b for each harvest_start
 
-                while (harvest_start * a) <= self.duration_project:
+                while (harvest_start * a) <= self.harvest_duration_project:
                     # If gap_harvest is True, apply the gap logic
                     if self.gap_harvest:
                         next_harvest_year = (harvest_start * a) + b
@@ -220,7 +223,7 @@ class CSIExante:
             sorted_harvest_list_added_start_year = [
                 i + year_start - 1
                 for i in all_harvest_list
-                if i + year_start - 1 <= self.duration_project
+                if i + year_start - 1 <= self.harvest_duration_project
             ]
 
             self.dict_plot_harvest_year_list[k] = sorted(
@@ -229,10 +232,10 @@ class CSIExante:
 
             # plot_sum[(plot_sum['Plot_ID']==i) & (plot_sum['Plot_ID']==i)]
 
-            # adding the project end duration
+            # adding the project end duration (harvest cycle cap, not extended delay tail)
             for k, v in self.dict_plot_harvest_year_list.items():
-                if self.duration_project not in v:
-                    v.append(self.duration_project)
+                if self.harvest_duration_project not in v:
+                    v.append(self.harvest_duration_project)
 
             # # Ensure project_end is part of the list
             # if self.duration_project not in all_harvest_list:

@@ -94,13 +94,16 @@ def ensure_measurement_type_column(df, column="measurement_type"):
     return df.assign(**{column: TREE_EVIDENCE_MEASUREMENT})
 
 
-def apply_delayed_growth_to_growth_df(growth_df, delay_years, species_col):
+def apply_delayed_growth_to_growth_df(
+    growth_df, delay_years, species_col, *, extend_tail_years=0
+):
     """
-    Prepend zero-growth years and shift the growth curve forward.
+    Rewrite growth input in place: zero DBH/Height in the delay window, then shift
+    the curve forward within the same year index range (optionally extend tail).
 
-    Example: original growth from year 2, delay_years=2 ->
-    years 1-2 are DBH/Height 0, original year 2 moves to year 3.
-    Standard case (growth from year 1): years 1-2 are 0, original year 1 moves to year 3.
+    Example delay_years=2, growth from year 1, max year 30, extend_tail_years=2:
+    years 1-2 -> 0; year 3 -> original year 1; ...; year 32 -> original year 30.
+    Harvest/project rotation years are unchanged; only the per-year DBH/Height input moves.
     """
     if delay_years <= 0 or growth_df is None or growth_df.empty:
         return growth_df
@@ -114,19 +117,36 @@ def apply_delayed_growth_to_growth_df(growth_df, delay_years, species_col):
     for species, group in growth_df.groupby(species_col, sort=False):
         group = group.sort_values("year").copy()
         min_year = int(group["year"].min())
+        max_year = int(group["year"].max())
         shift_amount = delay_years - (min_year - 1)
+        target_max_year = max_year + int(extend_tail_years or 0)
+        source_by_year = group.set_index("year")
 
-        zero_rows = pd.DataFrame(
-            {
-                species_col: [species] * delay_years,
-                "year": list(range(1, delay_years + 1)),
-                "DBH": [0.0] * delay_years,
-                "Height": [0.0] * delay_years,
-            }
-        )
-        shifted = group.copy()
-        shifted["year"] = shifted["year"] + shift_amount
-        parts.append(pd.concat([zero_rows, shifted], ignore_index=True))
+        rows = []
+        for year in range(1, target_max_year + 1):
+            row = {species_col: species, "year": year}
+            if year <= delay_years:
+                row["DBH"] = 0.0
+                row["Height"] = 0.0
+            else:
+                source_year = year - shift_amount
+                if source_year in source_by_year.index:
+                    source = source_by_year.loc[source_year]
+                    row["DBH"] = float(source["DBH"])
+                    row["Height"] = float(source["Height"])
+                elif source_year > max_year and max_year in source_by_year.index:
+                    source = source_by_year.loc[max_year]
+                    row["DBH"] = float(source["DBH"])
+                    row["Height"] = float(source["Height"])
+                else:
+                    row["DBH"] = 0.0
+                    row["Height"] = 0.0
+            for column in group.columns:
+                if column not in row:
+                    row[column] = group.iloc[0][column]
+            rows.append(row)
+
+        parts.append(pd.DataFrame(rows))
 
     delayed = pd.concat(parts, ignore_index=True)
     return delayed.sort_values([species_col, "year"]).reset_index(drop=True)
