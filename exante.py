@@ -266,6 +266,9 @@ class AllometryLibrary(AllometryFormulaDB, GrowthModelSpecies):
         biomass_per_tree_year["Height"] = (
             biomass_per_tree_year["Height"].astype(float).fillna(0)
         )
+        zero_growth_mask = (biomass_per_tree_year["DBH"] == 0) & (
+            biomass_per_tree_year["Height"] == 0
+        )
         biomass_per_tree_year["TTB_value_pertree_ton"] = biomass_per_tree_year.apply(
             lambda x: calc_biomass_formula(
                 x[self.allo_formula_column_name],
@@ -275,18 +278,19 @@ class AllometryLibrary(AllometryFormulaDB, GrowthModelSpecies):
             ),
             axis=1,
         )
+        if keep_zero_growth_years:
+            biomass_per_tree_year.loc[zero_growth_mask, "TTB_value_pertree_ton"] = 0
 
         biomass_per_tree_year = biomass_per_tree_year.dropna(
             subset=["TTB_value_pertree_ton"]
         )
         if keep_zero_growth_years:
-            zero_growth_mask = (biomass_per_tree_year["DBH"] == 0) & (
-                biomass_per_tree_year["Height"] == 0
-            )
-            biomass_per_tree_year.loc[zero_growth_mask, "TTB_value_pertree_ton"] = 0
             biomass_per_tree_year = biomass_per_tree_year[
                 (biomass_per_tree_year["TTB_value_pertree_ton"] != 0)
-                | zero_growth_mask
+                | (
+                    (biomass_per_tree_year["DBH"] == 0)
+                    & (biomass_per_tree_year["Height"] == 0)
+                )
             ]
         else:
             biomass_per_tree_year = biomass_per_tree_year[
@@ -595,6 +599,9 @@ class ExAnteCalc(AllometryLibrary):
             ]  # csi standard at least retaining 40%
 
         self.config = self.conf_general
+        self._duration_project_baseline = int(
+            self.conf_general.get("duration_project", 30)
+        )
 
         # THIS IS THE ALL DATA WE WILL GENERATED FOR INPUT AND OUTPUT in the SAME FOLDER in ROOT_FOLDER above
         # the name gdrive is copy paste from previous code, because it was using google shared drive link before
@@ -1085,13 +1092,20 @@ class ExAnteCalc(AllometryLibrary):
         carbon_delay_years = int(monitoring_year or 0)
         self.delayed_growth = delayed_growth
 
+        if not (delayed_growth and carbon_delay_years > 0):
+            # Default path: never inherit duration/harvest overrides from a prior delayed_growth run.
+            self.conf_general.pop("harvest_duration_project", None)
+            self.conf_general["duration_project"] = self._duration_project_baseline
+            if hasattr(self, "config") and isinstance(self.config, dict):
+                self.config.pop("harvest_duration_project", None)
+                self.config["duration_project"] = self._duration_project_baseline
+
         if delayed_growth and carbon_delay_years > 0:
             original_duration = int(self.conf_general.get("duration_project", 30))
             self.growth_selected = apply_delayed_growth_to_growth_df(
                 self.growth_selected,
                 carbon_delay_years,
                 self.name_column_species_growth,
-                extend_tail_years=carbon_delay_years,
             )
             self.growth_melt = self.growth_selected.copy()
 
@@ -1125,11 +1139,14 @@ class ExAnteCalc(AllometryLibrary):
         )
 
         # run the export csv after model is started running
-        export_growth_selected_csv(
-            self.growth_selected,
-            self.gdrive_growth_selected,
-            self.name_column_species_growth,
-        )
+        if delayed_growth and carbon_delay_years > 0:
+            export_growth_selected_csv(
+                self.growth_selected,
+                self.gdrive_growth_selected,
+                self.name_column_species_growth,
+            )
+        else:
+            self.growth_selected.to_csv(self.gdrive_growth_selected, index=False)
 
         p = Plot(csv_plot=self.gdrive_location_seedling, override_avg_tree_perha=self.override_avg_tree_perha)
         self.plot_seedling = p.csu_distribution()

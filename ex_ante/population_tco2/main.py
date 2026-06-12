@@ -235,11 +235,17 @@ def _zero_tco2_delay_window(pivot_df_tco2e, planting_year, delay_year):
     return pivot_df_tco2e
 
 
-def pop_tco2(df_ex_ante, planting_year=0, delay_year=0, all_tree_evidence=False):
+def pop_tco2(
+    df_ex_ante,
+    planting_year=0,
+    delay_year=0,
+    all_tree_evidence=False,
+    delayed_growth=False,
+):
     # Creating a pivot table, ex_ante adjustment for num_trees and tco2e
     df_ex_ante = df_ex_ante.copy()
-    # Shift the tco2e curve forward in calendar time during the carbon-delay window.
-    if delay_year > 0:
+    # Summary delay is skipped when carbon delay is already in the growth input.
+    if delay_year > 0 and not delayed_growth:
         df_ex_ante["year"] = df_ex_ante["year"] + delay_year
 
     pivot_df_tco2e = pd.pivot_table(
@@ -255,10 +261,14 @@ def pop_tco2(df_ex_ante, planting_year=0, delay_year=0, all_tree_evidence=False)
         aggfunc="sum",
     )
 
-    # Zero planting year and delay window (overwrite existing columns, not only missing ones).
-    pivot_df_tco2e = _zero_tco2_delay_window(
-        pivot_df_tco2e, planting_year, delay_year
-    )
+    if not delayed_growth:
+        pivot_df_tco2e = _zero_tco2_delay_window(
+            pivot_df_tco2e, planting_year, delay_year
+        )
+    else:
+        value_key = "total_csu_tCO2e_species"
+        if (value_key, planting_year) in pivot_df_tco2e.columns:
+            pivot_df_tco2e[(value_key, planting_year)] = 0
 
     # flatten level for the tco2e
     joined_pivot_tco2e_all = pivot_df_tco2e["total_csu_tCO2e_species"]
@@ -425,7 +435,13 @@ def num_tco_years(
     # display(joined_pivot_num_trees_all)
     # update mortality analysis
 
-    tco2 = pop_tco2(df_ex_ante=df_ex_ante, planting_year=planting_year, delay_year=current_gap_year, all_tree_evidence=all_tree_evidence)
+    tco2 = pop_tco2(
+        df_ex_ante=df_ex_ante,
+        planting_year=planting_year,
+        delay_year=current_gap_year,
+        all_tree_evidence=all_tree_evidence,
+        delayed_growth=delayed_growth,
+    )
     joined_pivot_tco2e_all=tco2['joined_pivot_tco2e_all']
     exante_tco2e_yrs = tco2['exante_tco2e_yrs']
 
