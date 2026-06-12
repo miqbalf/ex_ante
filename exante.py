@@ -23,6 +23,7 @@ from ex_ante.utils.helper import (
     apply_delayed_growth_to_growth_df,
     cleaning_csv_df,
     ensure_measurement_type_column,
+    export_growth_selected_csv,
 )
 from ex_ante.utils.max_density import get_max_density
 from IPython.display import display, HTML
@@ -1115,9 +1116,16 @@ class ExAnteCalc(AllometryLibrary):
             )
 
         effective_carbon_delay = 0 if delayed_growth else carbon_delay_years
+        effective_planting_year_baseline = (
+            0 if delayed_growth else add_planting_year_baseline
+        )
 
         # run the export csv after model is started running
-        self.growth_selected.to_csv(self.gdrive_growth_selected)
+        export_growth_selected_csv(
+            self.growth_selected,
+            self.gdrive_growth_selected,
+            self.name_column_species_growth,
+        )
 
         p = Plot(csv_plot=self.gdrive_location_seedling, override_avg_tree_perha=self.override_avg_tree_perha)
         self.plot_seedling = p.csu_distribution()
@@ -1226,6 +1234,13 @@ class ExAnteCalc(AllometryLibrary):
             np.nan,
         )
 
+        if delayed_growth and carbon_delay_years > 0:
+            # During carbon-delay years tco2_per_tree is 0; keep planting counts from num_trees.
+            zero_carbon_mask = all_df_merged["tco2_per_tree"].fillna(0) == 0
+            all_df_merged.loc[zero_carbon_mask, "num_trees_adjusted"] = (
+                all_df_merged.loc[zero_carbon_mask, "num_trees"]
+            )
+
         all_df_merged = all_df_merged.drop(columns="year_coredb")
         all_df_merged = all_df_merged.rename(columns={"year_merged": "year"})
         all_df_merged["year"] = all_df_merged["year"].astype(int)
@@ -1288,7 +1303,7 @@ class ExAnteCalc(AllometryLibrary):
             is_include_all_init_planting=is_include_all_init_planting,
             all_tree_evidence=all_tree_evidence,
             large_tree=large_tree,
-            add_planting_year_baseline=add_planting_year_baseline,
+            add_planting_year_baseline=effective_planting_year_baseline,
             delayed_growth=delayed_growth,
         )
         display(num_tco_years_run["exante_num_trees_yrs"])

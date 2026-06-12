@@ -130,3 +130,33 @@ def apply_delayed_growth_to_growth_df(growth_df, delay_years, species_col):
 
     delayed = pd.concat(parts, ignore_index=True)
     return delayed.sort_values([species_col, "year"]).reset_index(drop=True)
+
+
+def export_growth_selected_csv(growth_df, csv_path, species_col):
+    """Save selected growth in long form and CoreDB-style wide form."""
+    growth_df = growth_df.copy()
+    growth_df.to_csv(csv_path, index=False)
+
+    if (
+        growth_df is None
+        or growth_df.empty
+        or species_col not in growth_df.columns
+        or "year" not in growth_df.columns
+    ):
+        return growth_df
+
+    wide_rows = []
+    for species, group in growth_df.groupby(species_col, sort=False):
+        group = group.sort_values("year")
+        for measure in ("DBH", "Height"):
+            if measure not in group.columns:
+                continue
+            row = {species_col: species, "DBH/Height": measure}
+            for _, measure_row in group.iterrows():
+                row[f"year {int(measure_row['year'])}"] = measure_row[measure]
+            wide_rows.append(row)
+
+    if wide_rows:
+        wide_path = csv_path.replace(".csv", "_wide.csv")
+        pd.DataFrame(wide_rows).to_csv(wide_path, index=False)
+    return growth_df

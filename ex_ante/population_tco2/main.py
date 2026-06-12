@@ -414,7 +414,13 @@ def num_tco_years(
     else:
         df_ex_ante_for_num_trees = df_ex_ante.copy()
 
-    joined_pivot_num_trees_all = pop_num_trees(df_ex_ante_for_num_trees, distribution_seedling_df, planting_year=planting_year, is_include_all_init_planting=is_include_all_init_planting, current_gap_year=current_gap_year)
+    joined_pivot_num_trees_all = pop_num_trees(
+        df_ex_ante_for_num_trees,
+        distribution_seedling_df,
+        planting_year=planting_year,
+        is_include_all_init_planting=is_include_all_init_planting,
+        current_gap_year=current_gap_year,
+    )
     joined_pivot_num_trees_all.columns = joined_pivot_num_trees_all.columns.droplevel(0) # remove unecessary num_trees_adjusted column (level 0)
     # display(joined_pivot_num_trees_all)
     # update mortality analysis
