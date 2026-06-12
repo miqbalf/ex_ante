@@ -14,20 +14,20 @@ def _column_year(column):
     return None
 
 
-def _apply_planting_year_baseline(num_trees_df, planting_year, baseline_offset):
-    """Drop early year columns from num_trees output only (CSV/display trim)."""
+def _apply_planting_year_baseline(num_trees_df, baseline_offset):
+    """Shift year column headers by baseline_offset; cell values stay the same."""
     if baseline_offset <= 0:
         return num_trees_df
 
-    start_year = planting_year + baseline_offset
-    drop_columns = [
-        column
-        for column in num_trees_df.columns
-        if (year := _column_year(column)) is not None and year < start_year
-    ]
-    if not drop_columns:
+    rename_map = {}
+    for column in num_trees_df.columns:
+        year = _column_year(column)
+        if year is not None:
+            rename_map[column] = year + baseline_offset
+
+    if not rename_map:
         return num_trees_df
-    return num_trees_df.drop(columns=drop_columns)
+    return num_trees_df.rename(columns=rename_map)
 
 
 def pop_num_trees(df, seedling_csu, planting_year, is_include_all_init_planting=True, current_gap_year = 0):
@@ -474,10 +474,9 @@ def num_tco_years(
             joined_pivot_num_trees_all = joined_pivot_num_trees_all.drop(columns=['']) # not sure why we have '' column
             joined_pivot_num_trees_all = joined_pivot_num_trees_all.set_index(unique_index)
 
-    # Trim num_trees year columns for CSV/display only; tco2e output stays unchanged.
+    # Shift num_trees year column headers for CSV/display only; tco2e output stays unchanged.
     num_trees_for_output = _apply_planting_year_baseline(
         joined_pivot_num_trees_all,
-        planting_year,
         add_planting_year_baseline,
     )
     grand_total_num_trees_output = num_trees_for_output.sum(numeric_only=True)
