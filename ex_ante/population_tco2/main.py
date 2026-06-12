@@ -238,8 +238,8 @@ def _zero_tco2_delay_window(pivot_df_tco2e, planting_year, delay_year):
 def pop_tco2(df_ex_ante, planting_year=0, delay_year=0, all_tree_evidence=False):
     # Creating a pivot table, ex_ante adjustment for num_trees and tco2e
     df_ex_ante = df_ex_ante.copy()
-    # Shift curve forward only for all-tree-evidence; large-tree mode keeps calendar years.
-    if all_tree_evidence and delay_year > 0:
+    # Shift the tco2e curve forward in calendar time during the carbon-delay window.
+    if delay_year > 0:
         df_ex_ante["year"] = df_ex_ante["year"] + delay_year
 
     pivot_df_tco2e = pd.pivot_table(

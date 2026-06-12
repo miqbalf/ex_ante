@@ -61,8 +61,8 @@ def _build_carbon_delay_zero_frames(all_df_input, base_year, delay_year):
     return zero_frames
 
 
-def _apply_carbon_delay(all_df_input, base_year, delay_year, all_tree_evidence):
-    if not all_tree_evidence or delay_year <= 0:
+def _apply_carbon_delay(all_df_input, base_year, delay_year):
+    if delay_year <= 0:
         return all_df_input
 
     all_df_input = all_df_input.copy()
@@ -171,9 +171,7 @@ def input_cooling(
             list_df_zero.append(df_zero)
 
     all_df_input = pd.concat(list_df_zero + [all_df_input], ignore_index=True)
-    all_df_input = _apply_carbon_delay(
-        all_df_input, base_year, delay_year, all_tree_evidence
-    )
+    all_df_input = _apply_carbon_delay(all_df_input, base_year, delay_year)
     input_gcs = all_df_input[
         [
             "planting_year",
