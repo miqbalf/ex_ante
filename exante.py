@@ -1256,29 +1256,28 @@ class ExAnteCalc(AllometryLibrary):
             suffixes=("_merged", "_coredb"),
         )
 
-        # all_df_merged['num_trees_adjusted'] = (all_df_merged['total_csu_tCO2e_species'] / (all_df_merged['TTB_value_pertree_ton']*0.47*3.67)).astype(int)  #num trees = total tco2e/ per tree tco2e in rotation year
-        # because the gap year I think
+        # num_trees is initial planting; proportion_per_trees is survival/thinning by rotation year.
+        # Standing trees ≈ num_trees * proportion_per_trees (same basis as num_trees_retained at harvest).
+        # When tco2_per_tree > 0, invert from stock tCO2e (correct through harvest/remnant cycles).
+        # When tco2_per_tree == 0 (delayed-growth zero years, pre-carbon), use proportion standing count.
         mask = all_df_merged["total_csu_tCO2e_species"].notna()
+        tco2_per_tree = all_df_merged["tco2_per_tree"].fillna(0)
+        proportion_standing = np.round(
+            all_df_merged["num_trees"].fillna(0)
+            * all_df_merged["proportion_per_trees"].fillna(0)
+        ).astype(int)
 
         all_df_merged["num_trees_adjusted"] = np.where(
-            mask,
-            np.round(
-                (
-                    all_df_merged["total_csu_tCO2e_species"]
-                    / all_df_merged["tco2_per_tree"]
-                ).fillna(0)
-            ).astype(
-                int
-            ),  # Ensure rounding is applied before converting to int
+            ~mask,
             np.nan,
+            np.where(
+                tco2_per_tree != 0,
+                np.round(
+                    all_df_merged["total_csu_tCO2e_species"] / tco2_per_tree
+                ).astype(int),
+                proportion_standing,
+            ),
         )
-
-        if delayed_growth and carbon_delay_years > 0:
-            # During carbon-delay years tco2_per_tree is 0; keep planting counts from num_trees.
-            zero_carbon_mask = all_df_merged["tco2_per_tree"].fillna(0) == 0
-            all_df_merged.loc[zero_carbon_mask, "num_trees_adjusted"] = (
-                all_df_merged.loc[zero_carbon_mask, "num_trees"]
-            )
 
         all_df_merged = all_df_merged.drop(columns="year_coredb")
         all_df_merged = all_df_merged.rename(columns={"year_merged": "year"})
