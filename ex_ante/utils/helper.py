@@ -1,6 +1,7 @@
 import os
 import re
 
+import numpy as np
 import pandas as pd
 
 TREE_EVIDENCE_MEASUREMENT = "Nr Tree Evidence Expost"
@@ -85,6 +86,69 @@ def technical_measurement_type(value):
     if text:
         return text
     return TREE_EVIDENCE_MEASUREMENT
+
+
+def compute_num_trees_adjusted(df):
+    """
+    Standing tree count per row, aligned with harvest / remnant / replant flow.
+
+    Priority:
+    1. Carbon stock present (tco2_per_tree > 0, total > 0): invert from tCO2e — used
+       through growth, harvest weighing, and remnant rows with retained carbon.
+    2. Delayed-growth / pre-carbon years (tco2_per_tree == 0): num_trees * proportion
+       when proportion is set (mortality/thinning still applies).
+    3. Replant rows (new cycle init, trees but no carbon yet): num_trees already
+       reflects planting space after subtracting retained trees.
+    4. Remnant rows without carbon this year: num_trees (set to trees_retained).
+    5. Fallback: num_trees_retained from harvest pass.
+    """
+    mask = df["total_csu_tCO2e_species"].notna()
+    num_trees = df["num_trees"].fillna(0).to_numpy(dtype=float)
+    if "proportion_per_trees" in df.columns:
+        proportion = df["proportion_per_trees"].fillna(0).to_numpy(dtype=float)
+    else:
+        proportion = np.zeros(len(df), dtype=float)
+    tco2_per_tree = df["tco2_per_tree"].fillna(0).to_numpy(dtype=float)
+    total = df["total_csu_tCO2e_species"].fillna(0).to_numpy(dtype=float)
+
+    if "num_trees_retained" in df.columns:
+        retained = df["num_trees_retained"].fillna(0).to_numpy(dtype=float)
+    else:
+        retained = np.zeros(len(df), dtype=float)
+
+    if "remnant_trees" in df.columns:
+        remnant = df["remnant_trees"].fillna(False).to_numpy(dtype=bool)
+    else:
+        remnant = np.zeros(len(df), dtype=bool)
+
+    from_stock = np.round(total / np.where(tco2_per_tree != 0, tco2_per_tree, np.nan))
+    from_stock = np.where(np.isfinite(from_stock), from_stock, 0)
+
+    proportion_standing = np.round(num_trees * proportion)
+    proportion_standing = np.where(np.isfinite(proportion_standing), proportion_standing, 0)
+
+    has_carbon_stock = (tco2_per_tree > 0) & (total > 0)
+    has_proportion_standing = (tco2_per_tree == 0) & (proportion > 0) & (num_trees > 0)
+    has_replant_init = (tco2_per_tree == 0) & (proportion == 0) & (num_trees > 0)
+    remnant_standing = remnant & (num_trees > 0) & ~has_carbon_stock
+    has_retained = retained > 0
+
+    adjusted = np.where(
+        has_carbon_stock,
+        from_stock,
+        np.where(
+            has_proportion_standing,
+            proportion_standing,
+            np.where(
+                has_replant_init | remnant_standing,
+                num_trees,
+                np.where(has_retained, retained, 0),
+            ),
+        ),
+    )
+    adjusted = np.where(np.isfinite(adjusted), adjusted, 0).astype(int)
+
+    return pd.Series(np.where(mask.to_numpy(), adjusted, np.nan), index=df.index)
 
 
 def ensure_measurement_type_column(df, column="measurement_type"):

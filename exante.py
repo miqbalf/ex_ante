@@ -22,6 +22,7 @@ from ex_ante.utils.helper import (
     adding_zero_meas,
     apply_delayed_growth_to_growth_df,
     cleaning_csv_df,
+    compute_num_trees_adjusted,
     ensure_measurement_type_column,
     export_growth_selected_csv,
 )
@@ -1256,28 +1257,7 @@ class ExAnteCalc(AllometryLibrary):
             suffixes=("_merged", "_coredb"),
         )
 
-        # num_trees is initial planting; proportion_per_trees is survival/thinning by rotation year.
-        # Standing trees ≈ num_trees * proportion_per_trees (same basis as num_trees_retained at harvest).
-        # When tco2_per_tree > 0, invert from stock tCO2e (correct through harvest/remnant cycles).
-        # When tco2_per_tree == 0 (delayed-growth zero years, pre-carbon), use proportion standing count.
-        mask = all_df_merged["total_csu_tCO2e_species"].notna()
-        tco2_per_tree = all_df_merged["tco2_per_tree"].fillna(0)
-        proportion_standing = np.round(
-            all_df_merged["num_trees"].fillna(0)
-            * all_df_merged["proportion_per_trees"].fillna(0)
-        ).astype(int)
-
-        all_df_merged["num_trees_adjusted"] = np.where(
-            ~mask,
-            np.nan,
-            np.where(
-                tco2_per_tree != 0,
-                np.round(
-                    all_df_merged["total_csu_tCO2e_species"] / tco2_per_tree
-                ).astype(int),
-                proportion_standing,
-            ),
-        )
+        all_df_merged["num_trees_adjusted"] = compute_num_trees_adjusted(all_df_merged)
 
         all_df_merged = all_df_merged.drop(columns="year_coredb")
         all_df_merged = all_df_merged.rename(columns={"year_merged": "year"})
