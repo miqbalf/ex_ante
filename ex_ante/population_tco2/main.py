@@ -5,6 +5,31 @@ import pandas as pd
 
 from ex_ante.utils.helper import ensure_measurement_type_column
 
+
+def _column_year(column):
+    if isinstance(column, (int, np.integer)):
+        return int(column)
+    if isinstance(column, str) and column.isdigit():
+        return int(column)
+    return None
+
+
+def _apply_planting_year_baseline(num_trees_df, planting_year, baseline_offset):
+    """Drop early year columns from num_trees output only (CSV/display trim)."""
+    if baseline_offset <= 0:
+        return num_trees_df
+
+    start_year = planting_year + baseline_offset
+    drop_columns = [
+        column
+        for column in num_trees_df.columns
+        if (year := _column_year(column)) is not None and year < start_year
+    ]
+    if not drop_columns:
+        return num_trees_df
+    return num_trees_df.drop(columns=drop_columns)
+
+
 def pop_num_trees(df, seedling_csu, planting_year, is_include_all_init_planting=True, current_gap_year = 0):
     distribution_seedling_df = seedling_csu
     display(distribution_seedling_df)
@@ -271,7 +296,8 @@ def num_tco_years(
     num_trees_prev_exante: pd.DataFrame = pd.DataFrame(None),
     pivot_csu: pd.DataFrame = pd.DataFrame(None),
     is_include_all_init_planting = True,
-    all_tree_evidence = True
+    all_tree_evidence = True,
+    add_planting_year_baseline: int = 0,
 ):
     ''' example parameter arg.
     self = expost
@@ -448,36 +474,23 @@ def num_tco_years(
             joined_pivot_num_trees_all = joined_pivot_num_trees_all.drop(columns=['']) # not sure why we have '' column
             joined_pivot_num_trees_all = joined_pivot_num_trees_all.set_index(unique_index)
 
-        # Calculate the grand total for each numeric column
-        grand_total_num_trees = joined_pivot_num_trees_all.sum(numeric_only=True)
-
-        # Create a new row with the grand total values and the appropriate index
-        grand_total_row = pd.DataFrame(
-            [grand_total_num_trees],
-            index=pd.MultiIndex.from_tuples(
-                [("Grand Total", "", "", "",'','')],
-                names=joined_pivot_num_trees_all.index.names,
-            ),
-        )
-    else:
-        # Calculate the grand total for each numeric column
-        grand_total_num_trees = joined_pivot_num_trees_all.sum(numeric_only=True)
-
-        # Create a new row with the grand total values and the appropriate index
-        grand_total_row = pd.DataFrame(
-            [grand_total_num_trees],
-            index=pd.MultiIndex.from_tuples(
-                [("Grand Total", "", "", "",'','')],
-                names=joined_pivot_num_trees_all.index.names,
-            ),
-        )
-
-        
-    # display(grand_total_row)
-    # display(joined_pivot_num_trees_all)
+    # Trim num_trees year columns for CSV/display only; tco2e output stays unchanged.
+    num_trees_for_output = _apply_planting_year_baseline(
+        joined_pivot_num_trees_all,
+        planting_year,
+        add_planting_year_baseline,
+    )
+    grand_total_num_trees_output = num_trees_for_output.sum(numeric_only=True)
+    grand_total_row_output = pd.DataFrame(
+        [grand_total_num_trees_output],
+        index=pd.MultiIndex.from_tuples(
+            [("Grand Total", "", "", "", "", "")],
+            names=num_trees_for_output.index.names,
+        ),
+    )
 
     # Append the grand total row to the DataFrame
-    exante_num_trees_yrs = pd.concat([joined_pivot_num_trees_all, grand_total_row])
+    exante_num_trees_yrs = pd.concat([num_trees_for_output, grand_total_row_output])
     columns_sort = exante_num_trees_yrs.columns.tolist()
     columns_sort = [col for col in columns_sort if isinstance(col, str)] + sorted([col for col in columns_sort if isinstance(col, int)])
     exante_num_trees_yrs = exante_num_trees_yrs[columns_sort]
