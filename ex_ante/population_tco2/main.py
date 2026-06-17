@@ -103,12 +103,13 @@ def pop_num_trees(df, seedling_csu, planting_year, is_include_all_init_planting=
     print(pivot_num_trees_0.columns)
 
     for k, v in year_dict.items():
-        pivot_num_trees_0[("num_trees_adjusted", planting_year + k -1 )] = pivot_num_trees_0[
-            ("num_trees", planting_year + k)
-        ]
-
-        # display(pivot_num_trees_0)
-        pivot_num_trees_0 = pivot_num_trees_0.drop(columns=[("num_trees", planting_year + k )])
+        source_col = ("num_trees", planting_year + k)
+        if source_col not in pivot_num_trees_0.columns:
+            continue
+        pivot_num_trees_0[("num_trees_adjusted", planting_year + k - 1)] = (
+            pivot_num_trees_0[source_col]
+        )
+        pivot_num_trees_0 = pivot_num_trees_0.drop(columns=[source_col])
 
     # join all the important aggregation columns num_trees over years, by plot and species
     joined_pivot_num_trees_all = pd.merge(
@@ -416,7 +417,14 @@ def num_tco_years(
 
     if large_tree == True: # we will set the tree evidence for num_trees purpose only to get the number of trees in the previous years (year -1) because the algorithm process previously apply year_start delay for tree evidence due to no carbon yet
         df_ex_ante_for_num_trees = df_ex_ante.copy()
-        df_ex_ante_for_num_trees['year'] = df_ex_ante_for_num_trees.apply(lambda x: x['year'] -1 if x['measurement_type'] == 'Nr Tree Evidence Expost' and x['is_replanting'] == False and x['year_start'] > 1 else x['year'], axis=1)
+        df_ex_ante_for_num_trees['year'] = df_ex_ante_for_num_trees.apply(
+            lambda x: x['year'] - 1
+            if x['measurement_type'] == 'Nr Tree Evidence Expost'
+            and x['is_replanting'] == False
+            and x['year_start'] >= 1
+            else x['year'],
+            axis=1,
+        )
         df_ex_ante_for_num_trees['year_start'] = df_ex_ante_for_num_trees.apply(lambda x: x['year_start'] -1 if x['measurement_type'] == 'Nr Tree Evidence Expost' and x['is_replanting'] == False else x['year_start'], axis=1)
         
 
