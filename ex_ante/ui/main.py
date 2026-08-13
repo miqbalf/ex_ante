@@ -32,10 +32,19 @@ class SelectingScenario(widgets.VBox):
         self.allometric_column_filter = allometric_column_filter
         self.name_column_species_allo = name_column_species_allo
 
-        # Select the literature formula - country of origin
+        # Select the literature formula - country of origin.
+        # Prefer Indonesia/Singapore when present; otherwise use whatever the CSV has
+        # (e.g. Uganda-only Solidaridad data) so the widget does not TraitError.
+        country_options = [
+            c
+            for c in self.allometric_column_filter["Country of Use"].dropna().unique().tolist()
+            if str(c).strip()
+        ]
+        preferred = [c for c in ("Indonesia", "Singapore") if c in country_options]
+        country_default = preferred or country_options
         self.country_allometry = widgets.SelectMultiple(
-            options=list(self.allometric_column_filter["Country of Use"].unique()),
-            value=["Indonesia", "Singapore"],
+            options=country_options,
+            value=country_default,
             description="Country of Use:",
             disabled=False,
         )
