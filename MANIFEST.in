@@ -1,0 +1,10 @@
+include LICENSE
+include README.md
+include requirements.txt
+include howto.txt
+include max_density_trees_ha.csv
+recursive-include ex_ante *.csv *.json
+recursive-include ex_post *.csv *.json
+graft ex_ante
+graft ex_post
+global-exclude __pycache__ *.py[cod] .DS_Store

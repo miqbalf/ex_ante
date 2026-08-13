@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ex-ante"
+version = "0.1.0"
+description = "Ex-ante forestry tCO2 carbon estimation (ExAnteCalc + CoreDB helpers)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "See LICENSE" }
+authors = [{ name = "TREEO / miqbalf" }]
+dependencies = [
+  "numpy>=1.24",
+  "pandas>=2.0",
+  "python-dotenv>=1.0",
+  "scipy>=1.10",
+  "requests>=2.28",
+  # Required at import time by exante.py / csi_tree (not UI-only).
+  "matplotlib>=3.7",
+  "ipywidgets>=8.0",
+  "IPython>=8.0",
+]
+
+[project.optional-dependencies]
+notebook = [
+  "ipywidgets>=8.0",
+  "IPython>=8.0",
+  "matplotlib>=3.7",
+]
+gis = [
+  "geopandas>=0.14",
+  "shapely>=2.0",
+  "pyproj>=3.6",
+  "fiona>=1.9",
+  "pyogrio>=0.7",
+]
+dev = [
+  "ex-ante[notebook,gis]",
+]
+
+[project.urls]
+Homepage = "https://github.com/miqbalf/ex_ante"
+
+[tool.setuptools]
+# Top-level module: from exante import ExAnteCalc
+py-modules = ["exante"]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ex_ante*", "ex_post*"]
+# Do not treat the repo root (which has __init__.py for legacy path hacks) as a package.
+namespaces = false
+
+[tool.setuptools.package-data]
+ex_ante = ["**/*.csv", "**/*.json"]
+ex_post = ["**/*.csv", "**/*.json"]

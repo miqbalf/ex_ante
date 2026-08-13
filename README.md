@@ -97,8 +97,21 @@ ex_ante/
 
 ### Installation
 
+**Recommended (importable package — Jupyter / Colab / lab):**
+
 ```bash
-# Install dependencies
+# From a clone (e.g. /tmp/ex_ante) — editable keeps repo layout + relative data paths
+pip install -e ".[notebook]"
+
+# Then in Python / notebook:
+from exante import ExAnteCalc
+from ex_ante.utils.helper import ensure_measurement_type_column
+```
+
+Legacy path (no install): put the **repo root** on `sys.path` (not the parent of the clone). Relative imports inside `ex_ante.*` (`from ..utils...`) stay unchanged.
+
+```bash
+# Install dependencies only
 pip install -r requirements.txt
 
 # Or with trusted hosts (if SSL certificate issues)
