@@ -188,7 +188,7 @@ class SelectingScenario(widgets.VBox):
             if selected_indices:  # Only update if there are selected species
                 self.df_tree_selected[zone] = filtered_by_country_allo_type.loc[
                     selected_indices
-                ]
+                ].copy()
                 self.df_tree_selected[zone]["zone"] = zone
             else:
                 self.df_tree_selected[zone] = (
@@ -206,11 +206,21 @@ class SelectingScenario(widgets.VBox):
                 value=[],  # Start with no selection
                 description=f'Selecting species in {zone.replace("_", " ")}: ',
                 disabled=False,
-                rows=len(combine_list),
+                rows=max(len(combine_list), 3),
                 layout=widgets.Layout(width="600px"),
             )
             for zone in output_widgets.keys()
         }
+
+        # Keep handlers alive; interactive() without a stored ref is GC'd in Lab
+        # and species picks never land in df_tree_selected.
+        self._species_select_handlers = getattr(self, "_species_select_handlers", {})
+        for zone, wid in species_select_widgets.items():
+            def _on_species_change(change, zone=zone):
+                filter_function(zone, change["new"])
+
+            wid.observe(_on_species_change, names="value")
+            self._species_select_handlers[zone] = _on_species_change
 
         checkboxes = {
             zone: widgets.Checkbox(
@@ -222,10 +232,11 @@ class SelectingScenario(widgets.VBox):
             for zone in output_widgets.keys()
         }
 
-        def on_checkbox_change(change):
-            zone = change["owner"].description.split(" ")[1].lower() + "_zone"
+        def on_checkbox_change(change, zone=None):
+            # Prefer closed-over zone key; description parsing breaks on wording changes.
+            if zone is None:
+                zone = change["owner"].description.split(" ")[1].lower() + "_zone"
             if change["new"]:
-                # Checkbox checked - show only the widgets for the selected zone
                 if (
                     self.species_selection_widgets[zone]
                     not in self.widget_species_select.children
@@ -233,18 +244,12 @@ class SelectingScenario(widgets.VBox):
                     self.widget_species_select.children += (
                         self.species_selection_widgets[zone],
                     )
-                interactive(
-                    filter_function,
-                    zone=widgets.fixed(zone),
-                    species_selection_wid=species_select_widgets[zone],
-                )
+                # Sync current multi-select into df_tree_selected immediately.
+                filter_function(zone, species_select_widgets[zone].value)
             else:
-                # Checkbox unchecked - reset selection, clear output, and remove widgets for the zone
-                species_select_widgets[zone].value = []  # Clear selections
-                self.df_tree_selected[zone] = (
-                    pd.DataFrame()
-                )  # Reset to an empty DataFrame
-                output_widgets[zone].clear_output()  # Clear the output widget
+                species_select_widgets[zone].value = []
+                self.df_tree_selected[zone] = pd.DataFrame()
+                output_widgets[zone].clear_output()
                 self.widget_species_select.children = tuple(
                     child
                     for child in self.widget_species_select.children
@@ -252,7 +257,10 @@ class SelectingScenario(widgets.VBox):
                 )
 
         for zone, checkbox in checkboxes.items():
-            checkbox.observe(on_checkbox_change, names="value")
+            checkbox.observe(
+                lambda change, zone=zone: on_checkbox_change(change, zone=zone),
+                names="value",
+            )
 
         # Return dictionary with widgets setup
         return {
@@ -469,7 +477,7 @@ class CSUEntryForm:
             elif col_name == "zone":
                 self.widgets_dict[col_name] = widgets.Dropdown(
                     options=["production_zone", "protected_zone"],
-                    value="protected_zone", description=col_name, layout=layout_style, style=style
+                    value="production_zone", description=col_name, layout=layout_style, style=style
                 )
             elif col_name == "area_ha":
                 self.widgets_dict[col_name] = widgets.FloatText(

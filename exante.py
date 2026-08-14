@@ -753,7 +753,12 @@ class ExAnteCalc(AllometryLibrary):
                 # Capture selected data
                 self.df_selected = self.wm.selected_data
                 if not self.df_selected or not any(not df.empty for df in self.df_selected.values()):
-                    print("ERROR: No valid data selected from previous step.")
+                    print(
+                        "ERROR: No valid data selected from previous step.\n"
+                        "Checklist: (1) Country of Use selected (2) tick "
+                        "Select Production zone / Protected zone (3) highlight "
+                        "species in the list (Ctrl/Cmd-click) (4) Submit again."
+                    )
                     return # Stop if no data
                 print("Step 2: Data captured from wm.")
                 self.df_tree_selected = pd.concat(list(self.df_selected.values())).reset_index(drop=True) # Ensure it's a list for concat
@@ -766,10 +771,8 @@ class ExAnteCalc(AllometryLibrary):
 
                 # Acquire growth data
                 self.df_unique_species = self.df_tree_selected.drop(columns=["zone"]).drop_duplicates()
-                # Check if unique_species_selected is populated correctly before acquire_growth_data if it depends on it
-                print(f"Step 5: Unique species identified: {getattr(self, 'unique_species_selected', 'Attribute missing')}")
                 self.acquire_growth_data() # Ensure this defines self.unique_species_selected if needed below
-                print("Step 6: Growth data acquired.")
+                print(f"Step 5–6: Growth data acquired for {list(self.unique_species_selected)}")
 
                 # Create a template DataFrame
                 list_column_name = [
@@ -781,7 +784,6 @@ class ExAnteCalc(AllometryLibrary):
                     "year_start",
                     "mu",
                 ] + [f"{species}_num_trees" for species in self.unique_species_selected]
-                plot_csu = pd.DataFrame(columns=list_column_name)
                 plot_csu = pd.DataFrame(columns=list_column_name)
                 print("Step 7: Template DataFrame created.")
                 display(plot_csu)
@@ -797,7 +799,7 @@ class ExAnteCalc(AllometryLibrary):
         print("Step 8: Initializing CSUEntryForm...")
         try:
             self.csu_form = CSUEntryForm(plot_csu)
-            print("Step 9: Displaying CSUEntryForm...")
+            print("Step 9: Displaying CSUEntryForm (scroll down if needed)...")
             
             # Display form (works for both Colab and Jupyter)
             # IMPORTANT: Display outside of output context
@@ -807,11 +809,11 @@ class ExAnteCalc(AllometryLibrary):
             instructions_html = widgets.HTML(
                 value="<hr style='margin: 20px 0;'>"
                       "<div style='background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;'>"
-                      "<b style='color: #856404;'>📋 Instructions:</b><br>"
-                      "1. Fill out all fields in the form above<br>"
-                      "2. Click 'Add Row' to add the plot data<br>"
-                      "3. Repeat steps 1-2 for additional plots (if needed)<br>"
-                      "4. Click 'SUBMIT CSU DATA' button below when finished</div>"
+                      "<b style='color: #856404;'>📋 CSU / plot entry:</b><br>"
+                      "1. Fill out all fields in the <b>CSU Data Entry Form</b> above<br>"
+                      "2. Click <b>Add Row</b> (required — Submit alone does nothing without a row)<br>"
+                      "3. Repeat for additional plots if needed<br>"
+                      "4. Click <b>SUBMIT CSU DATA</b> below when finished</div>"
             )
             
             self.submit_csu_form_button = widgets.Button(
@@ -842,6 +844,22 @@ class ExAnteCalc(AllometryLibrary):
 
     def on_submit_form_csu(self, button):
         """Handles submission of CSU seedling data"""
+        # If the user filled widgets but never clicked Add Row, capture one row now.
+        if self.csu_form.csu_seedling is None or self.csu_form.csu_seedling.empty:
+            try:
+                self.csu_form.add_row_to_df(None)
+            except Exception as e:
+                with self.output:
+                    print(
+                        "ERROR: CSU table is empty. Fill the CSU form and click "
+                        f"'Add Row' first ({e})."
+                    )
+                return
+        if self.csu_form.csu_seedling.empty:
+            with self.output:
+                print("ERROR: CSU table is still empty after Add Row — check form values.")
+            return
+
         with self.output:
             # Save the updated DataFrame
             self.csu_form.csu_seedling.to_csv(
@@ -850,6 +868,7 @@ class ExAnteCalc(AllometryLibrary):
             self.csu_seedling = self.csu_form.csu_seedling
 
             print(f"CSU Seedling data saved to {self.gdrive_location_seedling}")
+            display(self.csu_seedling)
             print("Proceeding to widget generation for scenario data.")
 
         # Generate widgets for the next step OUTSIDE output context
@@ -924,6 +943,14 @@ class ExAnteCalc(AllometryLibrary):
             with self.output:
                 print(f"Found {len(cleaned_list_species.index.unique())} unique zone/replanting combinations")
                 print(f"Combinations: {cleaned_list_species.index.unique()}")
+
+            if cleaned_list_species.empty:
+                with self.output:
+                    print(
+                        "ERROR: No species with num_trees > 0 in CSU data. "
+                        "Add a plot row with tree counts, then SUBMIT CSU DATA again."
+                    )
+                return
 
             # Iterate through the unique combinations of the index (outside output context)
             for index_tuple in cleaned_list_species.index.unique():
