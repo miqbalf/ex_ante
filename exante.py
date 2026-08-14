@@ -536,11 +536,11 @@ class ExAnteCalc(AllometryLibrary):
             )
             print(f"Gap harvest enabled: {gap_harvest}")
 
-            thinning_stop = input("Apply the thinning stop algorithm? [yes/no or 1/0 or true/false] (Default: no/false/0)")
+            thinning_stop = input("Apply the thinning stop algorithm? [yes/no or 1/0 or true/false] (Default: yes/true/1) ").lower()
             thinning_stop = (
-                True if thinning_stop in ["true", "yes", "1", "y"] else 
-                False if thinning_stop in ["false", "no", "0", "n"] or not thinning_stop.strip() else 
-                (print("Invalid input, using default (no)"), False)[1]
+                False if thinning_stop in ["false", "no", "0", "n"] else
+                True if thinning_stop in ["true", "yes", "1", "y"] or not thinning_stop.strip() else
+                (print("Invalid input, using default (yes)"), True)[1]
             )
             print(f"thinning_stop enabled: {thinning_stop}")
 
