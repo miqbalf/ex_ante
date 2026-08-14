@@ -745,6 +745,10 @@ class ExAnteCalc(AllometryLibrary):
         else:
             display(submit_button)
         display(self.output)
+        # Pre-mount next-step UI. JupyterLab often ignores display() from button
+        # callbacks; updating this VBox's children is reliable.
+        self.ui_stage = widgets.VBox([])
+        display(self.ui_stage)
 
     def on_submit_click(self, button):
         with self.output:
@@ -794,48 +798,50 @@ class ExAnteCalc(AllometryLibrary):
                 traceback.print_exc() # Print full traceback
                 return
 
-        # Display widgets OUTSIDE the output context for better Jupyter compatibility
-        # This ensures widgets render properly in both Colab and Jupyter
+        # Mount CSU UI into the pre-displayed stage (JupyterLab-safe).
+        # The empty 0-row table above is only a column template — real plot
+        # rows are entered in the form below, then scenario widgets appear
+        # after SUBMIT CSU DATA.
         print("Step 8: Initializing CSUEntryForm...")
         try:
             self.csu_form = CSUEntryForm(plot_csu)
-            print("Step 9: Displaying CSUEntryForm (scroll down if needed)...")
-            
-            # Display form (works for both Colab and Jupyter)
-            # IMPORTANT: Display outside of output context
-            self.csu_form.display_form()
-            
-            # Create submit button with clear instructions
+            print("Step 9: Mounting CSUEntryForm into ui_stage...")
+
+            csu_container = self.csu_form.build_form_container()
+
             instructions_html = widgets.HTML(
                 value="<hr style='margin: 20px 0;'>"
                       "<div style='background-color: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;'>"
-                      "<b style='color: #856404;'>📋 CSU / plot entry:</b><br>"
-                      "1. Fill out all fields in the <b>CSU Data Entry Form</b> above<br>"
-                      "2. Click <b>Add Row</b> (required — Submit alone does nothing without a row)<br>"
+                      "<b style='color: #856404;'>📋 CSU / plot entry (this is the next step):</b><br>"
+                      "1. Fill out all fields in the <b>CSU Data Entry Form</b> below<br>"
+                      "2. Click <b>Add Row</b> (or Submit will auto-add one row if empty)<br>"
                       "3. Repeat for additional plots if needed<br>"
-                      "4. Click <b>SUBMIT CSU DATA</b> below when finished</div>"
+                      "4. Click <b>SUBMIT CSU DATA</b> — then species scenario forms appear</div>"
             )
-            
+
             self.submit_csu_form_button = widgets.Button(
                 description="✅ SUBMIT CSU DATA",
                 button_style='danger',
                 layout=widgets.Layout(width='350px', height='50px', margin='15px 0')
             )
             self.submit_csu_form_button.on_click(self.on_submit_form_csu)
-            
-            # Display instructions and button in a container
+
             submit_container = widgets.VBox([
                 instructions_html,
-                widgets.HBox([self.submit_csu_form_button], 
+                widgets.HBox([self.submit_csu_form_button],
                            layout=widgets.Layout(justify_content='center'))
             ], layout=widgets.Layout(padding='10px'))
-            
-            # Display outside output context
-            display(submit_container)
-            
-            # Continue logging inside output context
+
+            if not hasattr(self, "ui_stage"):
+                self.ui_stage = widgets.VBox([])
+                display(self.ui_stage)
+            self.ui_stage.children = (csu_container, submit_container)
+
             with self.output:
-                print("Step 10: CSUEntryForm and submit button displayed successfully!")
+                print(
+                    "Step 10: CSU form mounted below this log "
+                    "(scroll past the empty template table if needed)."
+                )
         except Exception as e:
             with self.output:
                 print(f"ERROR displaying form: {e}")
@@ -1017,11 +1023,15 @@ class ExAnteCalc(AllometryLibrary):
             forms_ui.append(widgets.HBox([self.final_submit_button], 
                                        layout=widgets.Layout(justify_content='center', margin='15px 0')))
 
-            # Display everything together OUTSIDE output context
-            display(widgets.VBox(forms_ui, layout=widgets.Layout(padding='20px')))
-            
+            # Mount scenario UI into the pre-displayed stage (JupyterLab-safe)
+            scenario_box = widgets.VBox(forms_ui, layout=widgets.Layout(padding='20px'))
+            if not hasattr(self, "ui_stage"):
+                self.ui_stage = widgets.VBox([])
+                display(self.ui_stage)
+            self.ui_stage.children = (scenario_box,)
+
             with self.output:
-                print("Species scenario widgets displayed successfully!")
+                print("Species scenario widgets mounted below (Step after CSU submit).")
                 
         except Exception as e:
             with self.output:

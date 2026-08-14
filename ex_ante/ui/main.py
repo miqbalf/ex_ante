@@ -575,35 +575,36 @@ class CSUEntryForm:
         with self.output:
             self.output.clear_output()
 
+    def build_form_container(self):
+        """
+        Build (but do not display) the CSU form container.
+        Callers should mount this into a pre-displayed VBox for JupyterLab.
+        """
+        header = widgets.HTML(
+            value="<h3 style='margin-top: 0;'>📝 CSU Data Entry Form</h3>"
+                  "<p>Fill in the plot information and species counts below:</p>",
+            layout=widgets.Layout(padding='10px')
+        )
+        return widgets.VBox([
+            header,
+            self.form,
+            widgets.HTML("<hr style='margin: 20px 0;'>"),
+            widgets.HTML("<b>Data Preview (updates when you click 'Add Row'):</b>"),
+            self.output
+        ], layout=widgets.Layout(
+            width='auto',
+            padding='15px',
+            border='2px solid #4CAF50',
+            border_radius='8px'
+        ))
+
     def display_form(self):
         """
         Display the form and the output area with improved Jupyter compatibility.
+        Prefer mounting build_form_container() into a pre-displayed VBox.
         """
         try:
-            # Create a container with header and form
-            header = widgets.HTML(
-                value="<h3 style='margin-top: 0;'>📝 CSU Data Entry Form</h3>"
-                      "<p>Fill in the plot information and species counts below:</p>",
-                layout=widgets.Layout(padding='10px')
-            )
-            
-            # Combine header, form, and output in a single VBox
-            container = widgets.VBox([
-                header,
-                self.form,
-                widgets.HTML("<hr style='margin: 20px 0;'>"),
-                widgets.HTML("<b>Data Preview (updates when you click 'Add Row'):</b>"),
-                self.output
-            ], layout=widgets.Layout(
-                width='auto',
-                padding='15px',
-                border='2px solid #4CAF50',
-                border_radius='8px'
-            ))
-            
-            # Display the container
-            display(container)
-                
+            display(self.build_form_container())
         except Exception as e:
             print(f"Error displaying form: {e}")
             import traceback
