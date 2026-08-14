@@ -63,7 +63,28 @@ class AllometryFormulaDB:
                 self.allo_formula_column_name,
                 "WD variable",
             ]
+        ].copy()
+        # Species + formula are required. Empty WD is valid for types that do not
+        # mention WD (e.g. "DBH based (only)", "Collar Diameter") — a blanket
+        # dropna() used to hide those types from the notebook Allom.type list.
+        required = [
+            self.name_column_species,
+            "Country of Use",
+            "Allometric Formula, Type",
+            self.allo_formula_column_name,
         ]
-        allometric_column_filter = allometric_column_filter.dropna()
+        allometric_column_filter = allometric_column_filter.dropna(subset=required)
+        wd_required = (
+            allometric_column_filter["Allometric Formula, Type"]
+            .astype(str)
+            .str.lower()
+            .str.contains("wd", regex=False)
+        )
+        wd_missing = allometric_column_filter["WD variable"].isna() | (
+            allometric_column_filter["WD variable"].astype(str).str.strip() == ""
+        )
+        allometric_column_filter = allometric_column_filter[
+            ~(wd_missing & wd_required)
+        ].copy()
 
         return allometric_column_filter

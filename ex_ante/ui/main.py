@@ -103,13 +103,21 @@ class SelectingScenario(widgets.VBox):
             self.list_widget_holder.children = ()
             return
 
-        # Allometry type selection
-        allo_opts = list(self.country_filtered_df["Allometric Formula, Type"].unique())
+        # Allometry type selection (sorted so types are easy to spot; multi-select)
+        allo_opts = sorted(
+            {
+                str(t).strip()
+                for t in self.country_filtered_df["Allometric Formula, Type"].dropna().unique()
+                if str(t).strip()
+            }
+        )
         self.allometric_select = widgets.SelectMultiple(
             options=allo_opts,
             value=[allo_opts[0]] if allo_opts else [],
             description="Allom.type:",
             disabled=False,
+            rows=max(len(allo_opts), 3),
+            layout=widgets.Layout(width="320px"),
         )
 
         # Update list holder with new widgets
