@@ -65,8 +65,15 @@ class SelectingScenario(widgets.VBox):
         children = [self.country_allometry, self.list_widget_holder]
         super().__init__(children=children)
 
+        # Setting value= at construct time does not fire observe — run once so
+        # allometry/species widgets appear (critical for single-country CSVs).
+        if self.country_allometry.value:
+            self._add_allo_type({"new": self.country_allometry.value})
+
     # Function to automate filter selection
     def filter_or_selection(self, df_string_var, column_name, *args):
+        if not args:
+            return eval(df_string_var).iloc[0:0]
         filter_df_string = f"{df_string_var}["
         for i in range(len(args)):
             if args[-1] != args[i]:
@@ -81,16 +88,26 @@ class SelectingScenario(widgets.VBox):
 
     def _add_allo_type(self, change):
         country_selected = change["new"]
+        if not country_selected:
+            self.list_widget_holder.children = ()
+            if self.widget_species_select in getattr(self, "children", ()):
+                self.children = tuple(
+                    c for c in self.children if c != self.widget_species_select
+                )
+            self.widget_species_select = None
+            return
         self.country_filtered_df = self.filter_or_selection(
             "self.allometric_column_filter", "Country of Use", *country_selected
         )
+        if self.country_filtered_df.empty:
+            self.list_widget_holder.children = ()
+            return
 
         # Allometry type selection
+        allo_opts = list(self.country_filtered_df["Allometric Formula, Type"].unique())
         self.allometric_select = widgets.SelectMultiple(
-            options=list(self.country_filtered_df["Allometric Formula, Type"].unique()),
-            value=[
-                list(self.country_filtered_df["Allometric Formula, Type"].unique())[0]
-            ],
+            options=allo_opts,
+            value=[allo_opts[0]] if allo_opts else [],
             description="Allom.type:",
             disabled=False,
         )
