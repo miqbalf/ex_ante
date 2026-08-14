@@ -1041,8 +1041,50 @@ class ExAnteCalc(AllometryLibrary):
 
     def on_final_submit_click(self, button):
         """Triggered when the final submit button is clicked to capture widget data"""
-        self.generate_input_scenario_species()
-        print("Scenario data submitted successfully!")
+        try:
+            self.generate_input_scenario_species()
+            ok = bool(getattr(self, "input_scenario_species", None))
+            path = getattr(self, "gdrive_location_scenario_rate", "")
+            if ok:
+                button.description = "✅ Scenario saved"
+                button.button_style = "success"
+                button.disabled = True
+                summary = widgets.HTML(
+                    value=(
+                        "<div style='background:#e8f5e9;padding:16px;border-radius:8px;"
+                        "border-left:6px solid #2e7d32;margin:12px 0;'>"
+                        "<b style='color:#1b5e20;font-size:16px;'>✅ Scenario data submitted successfully</b><br>"
+                        f"<span style='color:#33691e;'>Saved to:</span> <code>{path}</code><br>"
+                        "<span style='color:#33691e;'>You can continue with plot / CSI calculation in the next cell.</span>"
+                        "</div>"
+                    )
+                )
+                preview = widgets.Output()
+                with preview:
+                    pprint.pprint(self.input_scenario_species)
+                if hasattr(self, "ui_stage"):
+                    self.ui_stage.children = tuple(self.ui_stage.children) + (
+                        summary,
+                        preview,
+                    )
+                else:
+                    display(summary)
+                    display(preview)
+                with self.output:
+                    print("Scenario data submitted successfully!")
+                    print(f"Saved JSON: {path}")
+            else:
+                with self.output:
+                    print("ERROR: No scenario data collected — nothing was saved.")
+                button.description = "⚠️ Submit failed — retry"
+                button.button_style = "warning"
+        except Exception as e:
+            with self.output:
+                print(f"ERROR on scenario submit: {e}")
+                import traceback
+                traceback.print_exc()
+            button.description = "⚠️ Submit failed — retry"
+            button.button_style = "warning"
 
     def acquire_growth_data(self):
         # Get unique species selected and filter growth data based on selections
@@ -1104,7 +1146,12 @@ class ExAnteCalc(AllometryLibrary):
                         }
                         input_scenario_per_zone[species_name].update(widget.check)
                     except (AttributeError, IndexError) as e:
-                        print(f"Warning: Error processing widget in zone {zone_name}: {e}")
+                        msg = f"Warning: Error processing widget in zone {zone_name}: {e}"
+                        if hasattr(self, "output"):
+                            with self.output:
+                                print(msg)
+                        else:
+                            print(msg)
                         continue
 
                 if is_replanting:
@@ -1119,10 +1166,12 @@ class ExAnteCalc(AllometryLibrary):
             with open(self.gdrive_location_scenario_rate, "w") as json_file:
                 json.dump(self.input_scenario_species, json_file, indent=4)
 
-            print("Input scenario species saved to JSON:")
-            display(self.input_scenario_species)
+            with self.output:
+                print(f"Input scenario species saved to JSON: {self.gdrive_location_scenario_rate}")
+                display(self.input_scenario_species)
         else:
-            print("No data available to save for input scenario species.")
+            with self.output:
+                print("No data available to save for input scenario species.")
 
     # now after all the configuration input done, we proceed to the plot calculation, and graph chart, and later with input cooling
     # plot calc
